@@ -1,0 +1,27 @@
+src/ms_teams_cli/presentation/cli.py
+  s_11fe6d466a6242::t_18d6f477e2110b 47
+  s_11fe6d466a6242::t_afa26bd048b50c 43-45,69
+tests/test_cli_polish.py
+  s_11fe6d466a6242::t_3c6694d3b8bb5e 6,61-63,66-87,91-139,142
+  s_11fe6d466a6242::t_43c92f756b7f19 530
+  s_11fe6d466a6242::t_53da579f9f5848 64-65,88-90,140-141,143-149,476,506,516-517
+  s_11fe6d466a6242::t_7e97748393c525 275-278,288-291,306-309,331-334,422,431,440,449,458,467,485,494,550
+  s_11fe6d466a6242::t_43c80c37bb702c 8,315-316,318
+  s_11fe6d466a6242::t_94c032831beb26 303,348-362,529,531-533,611-621,630-632,641-643
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.9",
+  "base_commit_sha": "0b9bdd0d2bef122275981e05574c97ff1686e86e",
+  "prompts": {},
+  "sessions": {
+    "s_11fe6d466a6242": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_1c5c762beffeoQ3oJ9jkL0ihw6",
+        "model": "gpt-5.4"
+      },
+      "human_author": "Sergio Bugallo Enjamio <sergiobe@inditex.com>"
+    }
+  }
+}
