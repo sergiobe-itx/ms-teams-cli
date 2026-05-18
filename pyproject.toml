@@ -11,6 +11,7 @@ requires-python = ">=3.13"
 dependencies = [
     "httpx>=0.28",
     "msal>=1.31",
+    "mcp>=1.0",
     "pydantic>=2.10",
     "typer>=0.15",
     "rich>=13",
@@ -19,6 +20,7 @@ dependencies = [
 
 [project.scripts]
 ms-teams = "ms_teams_cli.presentation.cli:app"
+ms-teams-mcp = "ms_teams_cli.mcp_server:main"
 
 [dependency-groups]
 dev = [
