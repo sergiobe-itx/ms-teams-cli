@@ -20,12 +20,3 @@ class GraphTokenProvider(TokenProvider, Protocol):
     def renew(self) -> str:
         """Refresh and return a new access token."""
         ...
-
-
-@runtime_checkable
-class ChatTokenProvider(Protocol):
-    """Protocol for Teams Chat Service token providers."""
-
-    def get_token(self) -> tuple[str, str]:
-        """Return a chat token and chat service URL, refreshing if necessary."""
-        ...

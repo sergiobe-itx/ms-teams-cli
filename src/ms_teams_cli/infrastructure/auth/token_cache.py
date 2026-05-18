@@ -15,10 +15,6 @@ def _graph_cache_path() -> Path:
     return Path(os.environ.get("TEAMS_TOKEN_CACHE", _CACHE_DIR / "graph-token.json"))
 
 
-def _chat_cache_path() -> Path:
-    return Path(os.environ.get("TEAMS_SKYPE_TOKEN_CACHE", _CACHE_DIR / "chat-token.json"))
-
-
 def _atomic_write(path: Path, payload: dict[str, str | int]) -> None:
     _ = path.parent.mkdir(parents=True, exist_ok=True)
     temp_path = path.with_name(f".{path.name}.tmp")
@@ -57,43 +53,3 @@ class TokenCache:
     def save(self, token: str, expires_on: str) -> None:
         """Persist token and expiry to cache file."""
         _atomic_write(self._path, {"token": token, "expiresOn": expires_on})
-
-
-class ChatTokenCache:
-    """Cache for Teams Chat Service tokens."""
-
-    def __init__(self, path: Path | None = None) -> None:
-        self._path: Path = path or _chat_cache_path()
-
-    @property
-    def path(self) -> Path:
-        return self._path
-
-    def load(self) -> tuple[str, str] | None:
-        """Return cached chat token and service URL if still valid."""
-        try:
-            data = cast(
-                "dict[str, object]", json.loads(self._path.read_text(encoding="utf-8"))
-            )
-            skype_token = data.get("skypeToken")
-            chat_service = data.get("chatService")
-            expires_at = data.get("expiresAt")
-            if not isinstance(skype_token, str) or not isinstance(chat_service, str):
-                return None
-            if not isinstance(expires_at, int):
-                return None
-        except Exception:
-            return None
-        now = int(datetime.now(UTC).timestamp())
-        return (skype_token, chat_service) if expires_at > now + TOKEN_MARGIN else None
-
-    def save(self, skype_token: str, chat_service: str, expires_at: int) -> None:
-        """Persist chat token metadata to cache file."""
-        _atomic_write(
-            self._path,
-            {
-                "skypeToken": skype_token,
-                "chatService": chat_service,
-                "expiresAt": expires_at,
-            },
-        )

@@ -13,8 +13,6 @@ from ms_teams_cli.domain.exceptions import AuthenticationError
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from pytest_httpx import HTTPXMock
-
 
 def _future_iso(seconds: int = 3600) -> str:
     dt = datetime.now(UTC) + timedelta(seconds=seconds)
@@ -65,47 +63,3 @@ def test_az_graph_provider_raises_auth_error_when_az_fails(tmp_path: Path) -> No
         pytest.raises(AuthenticationError, match="az login required"),
     ):
             _ = AzGraphTokenProvider(cache=cache).get_token()
-
-
-def test_az_chat_provider_performs_two_step_exchange(
-    tmp_path: Path,
-    httpx_mock: HTTPXMock,
-) -> None:
-    from ms_teams_cli.infrastructure.auth import AzChatTokenProvider, ChatTokenCache
-
-    cache = ChatTokenCache(tmp_path / "chat-token.json")
-    result = MagicMock(
-        returncode=0,
-        stdout=json.dumps(
-            {
-                "accessToken": "aad-token",
-                "expiresOn": "2027-01-01 12:00:00.123456",
-            }
-        ),
-        stderr="",
-    )
-    httpx_mock.add_response(
-        method="POST",
-        url="https://authsvc.teams.microsoft.com/v1.0/authz",
-        json={
-            "tokens": {"skypeToken": "skype-token", "expiresIn": 3600},
-            "regionGtms": {"chatService": "https://chat.example.test"},
-        },
-    )
-
-    with patch(
-        "ms_teams_cli.infrastructure.auth.az_provider.subprocess.run",
-        return_value=result,
-    ) as run:
-        token, url = AzChatTokenProvider(cache=cache).get_token()
-
-    assert (token, url) == ("skype-token", "https://chat.example.test")
-    assert cache.load() == ("skype-token", "https://chat.example.test")
-    assert json.loads(cache.path.read_text())["skypeToken"] == "skype-token"
-    assert json.loads(cache.path.read_text())["chatService"] == "https://chat.example.test"
-    run.assert_called_once()
-    request = httpx_mock.get_requests()[0]
-    assert request.headers["Authorization"] == "Bearer aad-token"
-    assert json.loads(request.content.decode()) == {
-        "resourceUrl": "https://api.spaces.skype.com"
-    }
