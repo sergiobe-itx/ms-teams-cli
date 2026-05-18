@@ -1,0 +1,25 @@
+src/ms_teams_cli/domain/ports/__init__.py
+  s_d339ceabd04cb1::t_e3aa22ed2ab6a9 7
+src/ms_teams_cli/infrastructure/auth/az_provider.py
+  s_d339ceabd04cb1::t_435c234c3f9ed4 10
+src/ms_teams_cli/infrastructure/auth/__init__.py
+  s_d339ceabd04cb1::t_2fc927a35f1fba 2,5
+src/ms_teams_cli/infrastructure/__init__.py
+  s_d339ceabd04cb1::t_78843da7c2becb 2
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.9",
+  "base_commit_sha": "0cee4b55de705b7c1249053c6c02a9eec1ea9e33",
+  "prompts": {},
+  "sessions": {
+    "s_d339ceabd04cb1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_1c48db27effevKeyBxtgSwZTVg",
+        "model": "unknown"
+      },
+      "human_author": "Sergio Bugallo Enjamio <sergiobe@inditex.com>"
+    }
+  }
+}
