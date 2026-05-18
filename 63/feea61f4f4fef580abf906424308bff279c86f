@@ -1,0 +1,20 @@
+src/ms_teams_cli/presentation/dependencies.py
+  s_5ae0b1d4a42829::t_7118b2eaf197c0 28
+  s_5ae0b1d4a42829::t_6746b196e8d04d 44-46
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.9",
+  "base_commit_sha": "63feea61f4f4fef580abf906424308bff279c86f",
+  "prompts": {},
+  "sessions": {
+    "s_5ae0b1d4a42829": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_1c4934dc1ffeeqS7ORWVLcDmnD",
+        "model": "unknown"
+      },
+      "human_author": "Sergio Bugallo Enjamio <sergiobe@inditex.com>"
+    }
+  }
+}
