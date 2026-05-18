@@ -1,4 +1,5 @@
 """Graph infrastructure module."""
+from ms_teams_cli.infrastructure.graph.channel_repository import GraphChannelRepository
 from ms_teams_cli.infrastructure.graph.client import GraphClient
 
-__all__ = ["GraphClient"]
+__all__ = ["GraphChannelRepository", "GraphClient"]
