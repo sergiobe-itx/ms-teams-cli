@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import cast
 
 TOKEN_MARGIN: int = 300
-_CACHE_DIR = Path.home() / ".cache" / "ms-teams-cli"
+_CACHE_DIR = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")) / "ms-teams-cli"
 
 
 def _graph_cache_path() -> Path:
