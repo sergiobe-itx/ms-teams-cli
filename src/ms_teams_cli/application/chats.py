@@ -7,7 +7,7 @@ from ms_teams_cli.domain.entities import Chat, ChatMessage, ChatType
 from ms_teams_cli.domain.services import classify_chat, is_unread, resolve_display_name, strip_html
 
 if TYPE_CHECKING:
-    from ms_teams_cli.infrastructure.chat_client import ChatServiceClient
+    from ms_teams_cli.infrastructure.chat import ChatServiceClient
 
 
 def _as_payloads(value: object) -> list[dict[str, object]]:

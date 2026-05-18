@@ -7,9 +7,9 @@ from typing import TYPE_CHECKING, cast
 from typer.testing import CliRunner
 
 import ms_teams_cli.application.chats as chats_module
-import ms_teams_cli.infrastructure.az_provider as az_provider_module
-import ms_teams_cli.infrastructure.chat_client as chat_client_module
-import ms_teams_cli.infrastructure.token_cache as token_cache_module
+import ms_teams_cli.infrastructure.auth.az_provider as az_provider_module
+import ms_teams_cli.infrastructure.auth.token_cache as token_cache_module
+import ms_teams_cli.infrastructure.chat.client as chat_client_module
 import ms_teams_cli.presentation.cli as cli_module
 import ms_teams_cli.presentation.formatters as formatters_module
 from ms_teams_cli.application.chats import ChatService
@@ -19,7 +19,7 @@ from ms_teams_cli.domain.services import classify_chat, is_unread, resolve_displ
 if TYPE_CHECKING:
     import pytest
 
-    from ms_teams_cli.infrastructure.chat_client import ChatServiceClient
+    from ms_teams_cli.infrastructure.chat import ChatServiceClient
 
 
 app = cli_module.app

@@ -17,7 +17,7 @@ from ms_teams_cli.domain.entities import (
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
-    from ms_teams_cli.infrastructure.graph_client import GraphClient
+    from ms_teams_cli.infrastructure.graph import GraphClient
 
 
 _GRAPH = "https://graph.microsoft.com/v1.0"

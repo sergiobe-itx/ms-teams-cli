@@ -27,7 +27,7 @@ def _past_iso(seconds: int = 3600) -> str:
 
 
 def test_token_cache_saves_and_loads_graph_token(tmp_path: Path) -> None:
-    from ms_teams_cli.infrastructure.token_cache import TokenCache
+    from ms_teams_cli.infrastructure.auth import TokenCache
 
     cache = TokenCache(tmp_path / "graph-token.json")
 
@@ -41,7 +41,7 @@ def test_token_cache_saves_and_loads_graph_token(tmp_path: Path) -> None:
 
 
 def test_token_cache_returns_none_when_expired(tmp_path: Path) -> None:
-    from ms_teams_cli.infrastructure.token_cache import TokenCache
+    from ms_teams_cli.infrastructure.auth import TokenCache
 
     cache = TokenCache(tmp_path / "graph-token.json")
     cache.save("expired-token", _past_iso())
@@ -50,7 +50,7 @@ def test_token_cache_returns_none_when_expired(tmp_path: Path) -> None:
 
 
 def test_token_cache_returns_none_when_within_margin(tmp_path: Path) -> None:
-    from ms_teams_cli.infrastructure.token_cache import TOKEN_MARGIN, TokenCache
+    from ms_teams_cli.infrastructure.auth import TOKEN_MARGIN, TokenCache
 
     cache = TokenCache(tmp_path / "graph-token.json")
     cache.save("almost-expired", _future_iso(TOKEN_MARGIN - 100))
@@ -62,7 +62,7 @@ def test_token_cache_uses_xdg_path(monkeypatch: pytest.MonkeyPatch, tmp_path: Pa
     monkeypatch.delenv("TEAMS_TOKEN_CACHE", raising=False)
     monkeypatch.delenv("TEAMS_SKYPE_TOKEN_CACHE", raising=False)
 
-    import ms_teams_cli.infrastructure.token_cache as token_cache_module
+    import ms_teams_cli.infrastructure.auth.token_cache as token_cache_module
 
     monkeypatch.setattr(
         token_cache_module,
@@ -78,8 +78,7 @@ def test_token_cache_uses_xdg_path(monkeypatch: pytest.MonkeyPatch, tmp_path: Pa
 
 
 def test_az_graph_provider_gets_token_via_subprocess(tmp_path: Path) -> None:
-    from ms_teams_cli.infrastructure.az_provider import AzGraphTokenProvider
-    from ms_teams_cli.infrastructure.token_cache import TokenCache
+    from ms_teams_cli.infrastructure.auth import AzGraphTokenProvider, TokenCache
 
     cache = TokenCache(tmp_path / "graph-token.json")
     result = MagicMock(
@@ -94,7 +93,7 @@ def test_az_graph_provider_gets_token_via_subprocess(tmp_path: Path) -> None:
     )
 
     with patch(
-        "ms_teams_cli.infrastructure.az_provider.subprocess.run",
+        "ms_teams_cli.infrastructure.auth.az_provider.subprocess.run",
         return_value=result,
     ) as run:
         token = AzGraphTokenProvider(cache=cache).get_token()
@@ -109,15 +108,14 @@ def test_az_graph_provider_gets_token_via_subprocess(tmp_path: Path) -> None:
 
 
 def test_az_graph_provider_raises_auth_error_when_az_fails(tmp_path: Path) -> None:
-    from ms_teams_cli.infrastructure.az_provider import AzGraphTokenProvider
-    from ms_teams_cli.infrastructure.token_cache import TokenCache
+    from ms_teams_cli.infrastructure.auth import AzGraphTokenProvider, TokenCache
 
     cache = TokenCache(tmp_path / "graph-token.json")
     result = MagicMock(returncode=1, stdout="", stderr="login failed")
 
     with (
         patch(
-            "ms_teams_cli.infrastructure.az_provider.subprocess.run",
+            "ms_teams_cli.infrastructure.auth.az_provider.subprocess.run",
             return_value=result,
         ),
         pytest.raises(AuthenticationError, match="az login required"),
@@ -129,8 +127,7 @@ def test_az_chat_provider_performs_two_step_exchange(
     tmp_path: Path,
     httpx_mock: HTTPXMock,
 ) -> None:
-    from ms_teams_cli.infrastructure.az_provider import AzChatTokenProvider
-    from ms_teams_cli.infrastructure.token_cache import ChatTokenCache
+    from ms_teams_cli.infrastructure.auth import AzChatTokenProvider, ChatTokenCache
 
     cache = ChatTokenCache(tmp_path / "chat-token.json")
     result = MagicMock(
@@ -153,7 +150,7 @@ def test_az_chat_provider_performs_two_step_exchange(
     )
 
     with patch(
-        "ms_teams_cli.infrastructure.az_provider.subprocess.run",
+        "ms_teams_cli.infrastructure.auth.az_provider.subprocess.run",
         return_value=result,
     ) as run:
         token, url = AzChatTokenProvider(cache=cache).get_token()
@@ -171,13 +168,12 @@ def test_az_chat_provider_performs_two_step_exchange(
 
 
 def test_token_cache_hit_avoids_subprocess_call(tmp_path: Path) -> None:
-    from ms_teams_cli.infrastructure.az_provider import AzGraphTokenProvider
-    from ms_teams_cli.infrastructure.token_cache import TokenCache
+    from ms_teams_cli.infrastructure.auth import AzGraphTokenProvider, TokenCache
 
     cache = TokenCache(tmp_path / "graph-token.json")
     cache.save("cached-token", _future_iso())
 
-    with patch("ms_teams_cli.infrastructure.az_provider.subprocess.run") as run:
+    with patch("ms_teams_cli.infrastructure.auth.az_provider.subprocess.run") as run:
         token = AzGraphTokenProvider(cache=cache).get_token()
 
     assert token == "cached-token"

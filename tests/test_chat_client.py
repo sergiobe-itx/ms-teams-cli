@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from ms_teams_cli.domain.exceptions import ChatServiceAPIError
-from ms_teams_cli.infrastructure.chat_client import ChatServiceClient
+from ms_teams_cli.infrastructure.chat import ChatServiceClient
 
 if TYPE_CHECKING:
     from pytest_httpx import HTTPXMock

@@ -13,9 +13,11 @@ from typer.testing import CliRunner
 
 import ms_teams_cli.application.channels as channels_module
 import ms_teams_cli.application.chats as chats_module
-import ms_teams_cli.infrastructure.az_provider as az_provider_module
-import ms_teams_cli.infrastructure.chat_client as chat_client_module
-import ms_teams_cli.infrastructure.token_cache as token_cache_module
+import ms_teams_cli.infrastructure.auth as auth_module
+import ms_teams_cli.infrastructure.auth.az_provider as az_provider_module
+import ms_teams_cli.infrastructure.auth.token_cache as token_cache_module
+import ms_teams_cli.infrastructure.chat as chat_module
+import ms_teams_cli.infrastructure.chat.client as chat_client_module
 import ms_teams_cli.presentation.cli as cli_module
 from ms_teams_cli import (
     APIError,
@@ -550,7 +552,11 @@ def test_token_command_success(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) 
         should_raise: Exception | None = None
 
     monkeypatch.setattr(token_cache_module, "TokenCache", LocalTokenCache)
+    monkeypatch.setattr(auth_module, "TokenCache", LocalTokenCache)
+    monkeypatch.setattr(auth_module, "TokenCache", LocalTokenCache)
     monkeypatch.setattr(az_provider_module, "AzGraphTokenProvider", LocalTokenProvider)
+    monkeypatch.setattr(auth_module, "AzGraphTokenProvider", LocalTokenProvider)
+    monkeypatch.setattr(auth_module, "AzGraphTokenProvider", LocalTokenProvider)
 
     result = runner.invoke(app, ["token"])
 
@@ -565,7 +571,9 @@ def test_token_command_empty_cache(monkeypatch: pytest.MonkeyPatch) -> None:
             return None
 
     monkeypatch.setattr(token_cache_module, "TokenCache", EmptyTokenCache)
+    monkeypatch.setattr(auth_module, "TokenCache", EmptyTokenCache)
     monkeypatch.setattr(az_provider_module, "AzGraphTokenProvider", FakeGraphTokenProvider)
+    monkeypatch.setattr(auth_module, "AzGraphTokenProvider", FakeGraphTokenProvider)
 
     result = runner.invoke(app, ["token"])
 
@@ -578,7 +586,9 @@ def test_token_command_teams_error(monkeypatch: pytest.MonkeyPatch) -> None:
         should_raise: Exception | None = TeamsError("renew failed")
 
     monkeypatch.setattr(token_cache_module, "TokenCache", FakeTokenCache)
+    monkeypatch.setattr(auth_module, "TokenCache", FakeTokenCache)
     monkeypatch.setattr(az_provider_module, "AzGraphTokenProvider", FailingProvider)
+    monkeypatch.setattr(auth_module, "AzGraphTokenProvider", FailingProvider)
 
     result = runner.invoke(app, ["token"])
 
@@ -599,7 +609,9 @@ def test_token_command_unexpected_error(monkeypatch: pytest.MonkeyPatch) -> None
             raise RuntimeError("boom")
 
     monkeypatch.setattr(token_cache_module, "TokenCache", BrokenCache)
+    monkeypatch.setattr(auth_module, "TokenCache", BrokenCache)
     monkeypatch.setattr(az_provider_module, "AzGraphTokenProvider", FakeGraphTokenProvider)
+    monkeypatch.setattr(auth_module, "AzGraphTokenProvider", FakeGraphTokenProvider)
 
     result = runner.invoke(app, ["token"])
 
@@ -628,8 +640,11 @@ def test_scan_command_value_error(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_chats_command_invalid_type(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(token_cache_module, "ChatTokenCache", FakeChatTokenCache)
+    monkeypatch.setattr(auth_module, "ChatTokenCache", FakeChatTokenCache)
     monkeypatch.setattr(az_provider_module, "AzChatTokenProvider", FakeChatTokenProvider)
+    monkeypatch.setattr(auth_module, "AzChatTokenProvider", FakeChatTokenProvider)
     monkeypatch.setattr(chat_client_module, "ChatServiceClient", FakeChatClientFactory)
+    monkeypatch.setattr(chat_module, "ChatServiceClient", FakeChatClientFactory)
 
     result = runner.invoke(app, ["chats", "--type", "bad"])
 
@@ -639,8 +654,11 @@ def test_chats_command_invalid_type(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_unread_command_invalid_type(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(token_cache_module, "ChatTokenCache", FakeChatTokenCache)
+    monkeypatch.setattr(auth_module, "ChatTokenCache", FakeChatTokenCache)
     monkeypatch.setattr(az_provider_module, "AzChatTokenProvider", FakeChatTokenProvider)
+    monkeypatch.setattr(auth_module, "AzChatTokenProvider", FakeChatTokenProvider)
     monkeypatch.setattr(chat_client_module, "ChatServiceClient", FakeChatClientFactory)
+    monkeypatch.setattr(chat_module, "ChatServiceClient", FakeChatClientFactory)
 
     result = runner.invoke(app, ["unread", "--type", "bad"])
 

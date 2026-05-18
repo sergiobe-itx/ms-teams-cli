@@ -10,7 +10,7 @@ from typing import cast
 import httpx
 
 from ms_teams_cli.domain.exceptions import AuthenticationError
-from ms_teams_cli.infrastructure.token_cache import ChatTokenCache, TokenCache
+from ms_teams_cli.infrastructure.auth.token_cache import ChatTokenCache, TokenCache
 
 _GRAPH_RESOURCE = "https://graph.microsoft.com"
 _SKYPE_RESOURCE = "https://api.spaces.skype.com"

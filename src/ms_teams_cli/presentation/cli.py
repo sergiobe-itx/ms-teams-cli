@@ -94,9 +94,8 @@ def teams_command(
 ) -> None:
     """List all teams the user belongs to."""
     from ms_teams_cli.application.channels import ChannelService
-    from ms_teams_cli.infrastructure.az_provider import AzGraphTokenProvider
-    from ms_teams_cli.infrastructure.graph_client import GraphClient
-    from ms_teams_cli.infrastructure.token_cache import TokenCache
+    from ms_teams_cli.infrastructure.auth import AzGraphTokenProvider, TokenCache
+    from ms_teams_cli.infrastructure.graph import GraphClient
     from ms_teams_cli.presentation.formatters import format_json, format_teams_table
 
     try:
@@ -126,9 +125,8 @@ def channels_command(
 ) -> None:
     """List channels in a team."""
     from ms_teams_cli.application.channels import ChannelService
-    from ms_teams_cli.infrastructure.az_provider import AzGraphTokenProvider
-    from ms_teams_cli.infrastructure.graph_client import GraphClient
-    from ms_teams_cli.infrastructure.token_cache import TokenCache
+    from ms_teams_cli.infrastructure.auth import AzGraphTokenProvider, TokenCache
+    from ms_teams_cli.infrastructure.graph import GraphClient
     from ms_teams_cli.presentation.formatters import format_channels_table, format_json
 
     try:
@@ -174,9 +172,8 @@ def messages_command(
 ) -> None:
     """List messages in a channel."""
     from ms_teams_cli.application.channels import ChannelService
-    from ms_teams_cli.infrastructure.az_provider import AzGraphTokenProvider
-    from ms_teams_cli.infrastructure.graph_client import GraphClient
-    from ms_teams_cli.infrastructure.token_cache import TokenCache
+    from ms_teams_cli.infrastructure.auth import AzGraphTokenProvider, TokenCache
+    from ms_teams_cli.infrastructure.graph import GraphClient
     from ms_teams_cli.presentation.formatters import format_json, format_messages_table
 
     try:
@@ -224,9 +221,8 @@ def replies_command(
 ) -> None:
     """Show a thread: original post and all replies."""
     from ms_teams_cli.application.channels import ChannelService
-    from ms_teams_cli.infrastructure.az_provider import AzGraphTokenProvider
-    from ms_teams_cli.infrastructure.graph_client import GraphClient
-    from ms_teams_cli.infrastructure.token_cache import TokenCache
+    from ms_teams_cli.infrastructure.auth import AzGraphTokenProvider, TokenCache
+    from ms_teams_cli.infrastructure.graph import GraphClient
     from ms_teams_cli.presentation.formatters import format_json, format_thread
 
     try:
@@ -269,9 +265,8 @@ def unanswered_command(
 ) -> None:
     """List posts with no replies within the last N minutes."""
     from ms_teams_cli.application.channels import ChannelService
-    from ms_teams_cli.infrastructure.az_provider import AzGraphTokenProvider
-    from ms_teams_cli.infrastructure.graph_client import GraphClient
-    from ms_teams_cli.infrastructure.token_cache import TokenCache
+    from ms_teams_cli.infrastructure.auth import AzGraphTokenProvider, TokenCache
+    from ms_teams_cli.infrastructure.graph import GraphClient
     from ms_teams_cli.presentation.formatters import format_json, format_unanswered_table
 
     try:
@@ -317,9 +312,8 @@ def scan_command(
 ) -> None:
     """Scan all channels of a team for activity on a specific date."""
     from ms_teams_cli.application.channels import ChannelService
-    from ms_teams_cli.infrastructure.az_provider import AzGraphTokenProvider
-    from ms_teams_cli.infrastructure.graph_client import GraphClient
-    from ms_teams_cli.infrastructure.token_cache import TokenCache
+    from ms_teams_cli.infrastructure.auth import AzGraphTokenProvider, TokenCache
+    from ms_teams_cli.infrastructure.graph import GraphClient
     from ms_teams_cli.presentation.formatters import format_json, format_scan_result
 
     try:
@@ -393,8 +387,7 @@ def parse_url_command(
 def token_command() -> None:
     """Force token renewal and show expiry."""
     from ms_teams_cli.domain.exceptions import TeamsError
-    from ms_teams_cli.infrastructure.az_provider import AzGraphTokenProvider
-    from ms_teams_cli.infrastructure.token_cache import TokenCache
+    from ms_teams_cli.infrastructure.auth import AzGraphTokenProvider, TokenCache
 
     try:
         cache = TokenCache()
@@ -437,9 +430,8 @@ def chats_command(
     """List chats from the Teams chat service."""
     from ms_teams_cli.application.chats import ChatService
     from ms_teams_cli.domain.entities import ChatType
-    from ms_teams_cli.infrastructure.az_provider import AzChatTokenProvider
-    from ms_teams_cli.infrastructure.chat_client import ChatServiceClient
-    from ms_teams_cli.infrastructure.token_cache import ChatTokenCache
+    from ms_teams_cli.infrastructure.auth import AzChatTokenProvider, ChatTokenCache
+    from ms_teams_cli.infrastructure.chat import ChatServiceClient
     from ms_teams_cli.presentation.formatters import format_chats_table, format_json
 
     resolved_type: ChatType | None = None
@@ -481,9 +473,8 @@ def unread_command(
     """List chats with unread messages."""
     from ms_teams_cli.application.chats import ChatService
     from ms_teams_cli.domain.entities import ChatType
-    from ms_teams_cli.infrastructure.az_provider import AzChatTokenProvider
-    from ms_teams_cli.infrastructure.chat_client import ChatServiceClient
-    from ms_teams_cli.infrastructure.token_cache import ChatTokenCache
+    from ms_teams_cli.infrastructure.auth import AzChatTokenProvider, ChatTokenCache
+    from ms_teams_cli.infrastructure.chat import ChatServiceClient
     from ms_teams_cli.presentation.formatters import format_json, format_unread_table
 
     resolved_type: ChatType | None = None
@@ -528,9 +519,8 @@ def chat_messages_command(
 ) -> None:
     """Show messages from a chat conversation."""
     from ms_teams_cli.application.chats import ChatService
-    from ms_teams_cli.infrastructure.az_provider import AzChatTokenProvider
-    from ms_teams_cli.infrastructure.chat_client import ChatServiceClient
-    from ms_teams_cli.infrastructure.token_cache import ChatTokenCache
+    from ms_teams_cli.infrastructure.auth import AzChatTokenProvider, ChatTokenCache
+    from ms_teams_cli.infrastructure.chat import ChatServiceClient
     from ms_teams_cli.presentation.formatters import format_chat_messages_table, format_json
 
     try:
@@ -558,9 +548,8 @@ def send_message_command(
 ) -> None:
     """Send a message to a chat conversation."""
     from ms_teams_cli.application.chats import ChatService
-    from ms_teams_cli.infrastructure.az_provider import AzChatTokenProvider
-    from ms_teams_cli.infrastructure.chat_client import ChatServiceClient
-    from ms_teams_cli.infrastructure.token_cache import ChatTokenCache
+    from ms_teams_cli.infrastructure.auth import AzChatTokenProvider, ChatTokenCache
+    from ms_teams_cli.infrastructure.chat import ChatServiceClient
 
     try:
         cache = ChatTokenCache()

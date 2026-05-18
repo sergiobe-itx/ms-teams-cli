@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from ms_teams_cli.domain.exceptions import GraphAPIError
-from ms_teams_cli.infrastructure.graph_client import GraphClient
+from ms_teams_cli.infrastructure.graph import GraphClient
 
 if TYPE_CHECKING:
     from pytest_httpx import HTTPXMock
