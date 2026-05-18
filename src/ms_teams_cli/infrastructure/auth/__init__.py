@@ -3,6 +3,7 @@ from ms_teams_cli.infrastructure.auth.az_provider import (
     AzChatTokenProvider,
     AzGraphTokenProvider,
 )
+from ms_teams_cli.infrastructure.auth.msal_provider import MsalGraphTokenProvider
 from ms_teams_cli.infrastructure.auth.token_cache import (
     TOKEN_MARGIN,
     ChatTokenCache,
@@ -12,6 +13,7 @@ from ms_teams_cli.infrastructure.auth.token_cache import (
 __all__ = [
     "AzGraphTokenProvider",
     "AzChatTokenProvider",
+    "MsalGraphTokenProvider",
     "TokenCache",
     "ChatTokenCache",
     "TOKEN_MARGIN",
