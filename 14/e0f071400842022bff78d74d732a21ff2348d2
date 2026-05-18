@@ -1,0 +1,26 @@
+tests/infrastructure/graph/test_chat_repository.py
+  s_9021b32125fbdb::t_970d14b92f7530 1-36,42-66,72-129,135-174,180-205,211-408
+  s_9021b32125fbdb::t_46bd2d1a2d59a9 37-41,67-71,130-134,175-179,206-210
+src/ms_teams_cli/infrastructure/graph/__init__.py
+  s_9021b32125fbdb::t_cd165c5055091b 7-12
+  s_9021b32125fbdb::t_46bd2d1a2d59a9 4
+src/ms_teams_cli/infrastructure/graph/chat_repository.py
+  s_9021b32125fbdb::t_82b531e6ec9f62 30,32,168
+  s_9021b32125fbdb::t_cd165c5055091b 1-29,31,33-167,169-203
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.9",
+  "base_commit_sha": "14e0f071400842022bff78d74d732a21ff2348d2",
+  "prompts": {},
+  "sessions": {
+    "s_9021b32125fbdb": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_1c49aeb88ffe45vQHjUG0Dfzk1",
+        "model": "gpt-5.4"
+      },
+      "human_author": "Sergio Bugallo Enjamio <sergiobe@inditex.com>"
+    }
+  }
+}
