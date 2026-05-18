@@ -1,0 +1,22 @@
+src/ms_teams_cli/mcp_config.py
+  s_f03af850dd6f2e::t_b834ae1c5e89a2 6,30-32,34
+  s_f03af850dd6f2e::t_a817d6d324ba68 1-5,7-29,33,35-41
+pyproject.toml
+  s_f03af850dd6f2e::t_4ee87a99acfe8c 14,23
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.9",
+  "base_commit_sha": "c457e5bb3795fb59f10a3d50579ccb173f98752c",
+  "prompts": {},
+  "sessions": {
+    "s_f03af850dd6f2e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_1c6351f7affe3SQB00GcfVLJVr",
+        "model": "unknown"
+      },
+      "human_author": "Sergio Bugallo Enjamio <sergiobe@inditex.com>"
+    }
+  }
+}
