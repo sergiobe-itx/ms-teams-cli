@@ -1,0 +1,66 @@
+src/ms_teams_cli/infrastructure/graph/calendar_repository.py
+  s_b5c2bca15eaaa9::t_d816b2b28b187d 1-69
+src/ms_teams_cli/infrastructure/graph/__init__.py
+  s_b5c2bca15eaaa9::t_49ddce796a9663 2,6
+src/ms_teams_cli/presentation/dependencies.py
+  s_f03af850dd6f2e::t_4a007212315d4c 26-30
+  s_ebf38bd0cdd4ac::t_d92de090476b85 87-96
+  s_ebf38bd0cdd4ac::t_964957b274c3dc 10
+src/ms_teams_cli/presentation/cli.py
+  s_ebf38bd0cdd4ac::t_6a42d7505cf8e0 533-577
+tests/infrastructure/graph/test_calendar_repository.py
+  s_e12cab788d311d::t_c61a8b2ece470b 1-168
+tests/application/use_cases/calendar/test_list_calendar_events.py
+  s_e12cab788d311d::t_e9b351f9635264 1-58
+tests/presentation/test_formatters.py
+  s_e12cab788d311d::t_c2733c45c542b4 300-395
+tests/domain/test_calendar_entity.py
+  s_e12cab788d311d::t_8e38e1a80bbef7 1-47
+tests/presentation/test_cli.py
+  s_e12cab788d311d::t_de0adda7052eae 887-967,971-976
+  s_f03af850dd6f2e::t_0ea89b9da38704 968-970
+src/ms_teams_cli/presentation/formatters.py
+  s_ebf38bd0cdd4ac::t_0df1e6edc1cf3d 356-366,368-425
+  s_e12cab788d311d::t_0c44dd2dec7973 367
+  s_ebf38bd0cdd4ac::t_f571623146e9ac 15
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.9",
+  "base_commit_sha": "2e6f6cdeffec7485c9a8ec8ccd9a4223cbb542f6",
+  "prompts": {},
+  "sessions": {
+    "s_b5c2bca15eaaa9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_1c5318892ffeo9H9VHhrxriygV",
+        "model": "unknown"
+      },
+      "human_author": "Sergio Bugallo Enjamio <sergiobe@inditex.com>"
+    },
+    "s_e12cab788d311d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_1c52ca29cffexzd6M1lEqdPDbU",
+        "model": "unknown"
+      },
+      "human_author": "Sergio Bugallo Enjamio <sergiobe@inditex.com>"
+    },
+    "s_ebf38bd0cdd4ac": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_1c52fa3aaffeoplC1gQ7dS90TL",
+        "model": "unknown"
+      },
+      "human_author": "Sergio Bugallo Enjamio <sergiobe@inditex.com>"
+    },
+    "s_f03af850dd6f2e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_1c6351f7affe3SQB00GcfVLJVr",
+        "model": "unknown"
+      },
+      "human_author": "Sergio Bugallo Enjamio <sergiobe@inditex.com>"
+    }
+  }
+}
