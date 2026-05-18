@@ -1,0 +1,36 @@
+tests/test_channels.py
+  s_aa9dca5f7aac67::t_03bbddd71a4680 602
+  s_aa9dca5f7aac67::t_bc80f34a4eceb4 5
+  s_aa9dca5f7aac67::t_776a4705fad2e0 39-41
+  s_aa9dca5f7aac67::t_69582f07c3da90 597-601,603-881
+src/ms_teams_cli/presentation/formatters.py
+  s_aa9dca5f7aac67::t_b4210074dec6da 162-226,228-239
+  s_aa9dca5f7aac67::t_17bfaee541ae8a 14
+  s_aa9dca5f7aac67::t_b4dba59d0b5709 227
+src/ms_teams_cli/application/channels.py
+  s_aa9dca5f7aac67::t_7f957d97a75c36 112
+  s_aa9dca5f7aac67::t_00b18c48689c00 4,8-15
+  s_aa9dca5f7aac67::t_a9df04fe15a40e 122-124
+  s_aa9dca5f7aac67::t_42160929aaed71 101-111,113-121,125-232
+  s_aa9dca5f7aac67::t_379a4ee74009fc 5
+src/ms_teams_cli/domain/models.py
+  s_aa9dca5f7aac67::t_cf33455f49c2c9 80-108
+src/ms_teams_cli/presentation/cli.py
+  s_aa9dca5f7aac67::t_0e723e8f03a230 191-286
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.9",
+  "base_commit_sha": "5c9dad1b6279b24478c19dd5ef0cdff3a3fac12b",
+  "prompts": {},
+  "sessions": {
+    "s_aa9dca5f7aac67": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_1c5e86f16ffeQ7i0cOpY35I4Uw",
+        "model": "unknown"
+      },
+      "human_author": "Sergio Bugallo Enjamio <sergiobe@inditex.com>"
+    }
+  }
+}
