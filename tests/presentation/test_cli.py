@@ -884,3 +884,93 @@ def test_unread_command_invalid_type(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert result.exit_code == 1
     assert "Invalid chat type: bad" in result.stderr
+
+
+# === Calendar CLI commands ===
+
+
+def test_calendar_help() -> None:
+    result = runner.invoke(app, ["calendar", "--help"])
+    assert result.exit_code == 0
+    assert "--from" in result.output
+    assert "--to" in result.output
+
+
+def test_calendar_invalid_from_date(monkeypatch: pytest.MonkeyPatch) -> None:
+    result = runner.invoke(app, ["calendar", "--from", "notadate", "--to", "2026-05-18"])
+    assert result.exit_code == 1
+    assert "Error: --from must be YYYY-MM-DD" in result.stderr
+
+
+def test_calendar_invalid_to_date(monkeypatch: pytest.MonkeyPatch) -> None:
+    result = runner.invoke(app, ["calendar", "--from", "2026-05-18", "--to", "notadate"])
+    assert result.exit_code == 1
+    assert "Error: --to must be YYYY-MM-DD" in result.stderr
+
+
+def test_calendar_invalid_range(monkeypatch: pytest.MonkeyPatch) -> None:
+    result = runner.invoke(app, ["calendar", "--from", "2026-05-20", "--to", "2026-05-18"])
+    assert result.exit_code == 1
+    assert "--from must be" in result.stderr
+
+
+def test_calendar_returns_events_table(monkeypatch: pytest.MonkeyPatch) -> None:
+    from ms_teams_cli.domain.entities import CalendarEvent
+
+    events = [
+        CalendarEvent(
+            id="1",
+            subject="Standup",
+            start_datetime="2026-05-18T09:00:00",
+            end_datetime="2026-05-18T09:30:00",
+            start_timezone="UTC",
+            end_timezone="UTC",
+            organizer_name="Alice",
+        )
+    ]
+    uc = _FakeUseCase(return_value=events)
+    monkeypatch.setattr(deps_module, "get_list_calendar_events", lambda: uc)
+
+    result = runner.invoke(app, ["calendar", "--from", "2026-05-18", "--to", "2026-05-18"])
+
+    assert result.exit_code == 0
+    assert "Standup" in result.output
+    assert "1 event(s) found." in result.output
+
+
+def test_calendar_empty_result(monkeypatch: pytest.MonkeyPatch) -> None:
+    uc = _FakeUseCase(return_value=[])
+    monkeypatch.setattr(deps_module, "get_list_calendar_events", lambda: uc)
+
+    result = runner.invoke(app, ["calendar", "--from", "2026-05-18", "--to", "2026-05-18"])
+
+    assert result.exit_code == 0
+    assert "No events found" in result.output
+
+
+def test_calendar_json_output(monkeypatch: pytest.MonkeyPatch) -> None:
+    from ms_teams_cli.domain.entities import CalendarEvent
+
+    events = [
+        CalendarEvent(
+            id="1",
+            subject="Standup",
+            start_datetime="2026-05-18T09:00:00",
+            end_datetime="2026-05-18T09:30:00",
+            start_timezone="UTC",
+            end_timezone="UTC",
+            organizer_name="Alice",
+        )
+    ]
+    uc = _FakeUseCase(return_value=events)
+    monkeypatch.setattr(deps_module, "get_list_calendar_events", lambda: uc)
+
+    result = runner.invoke(
+        app, ["calendar", "--from", "2026-05-18", "--to", "2026-05-18", "--json"]
+    )
+
+    assert result.exit_code == 0
+    data = json.loads(result.output)
+    assert isinstance(data, list)
+    assert len(data) == 1
+    assert data[0]["subject"] == "Standup"

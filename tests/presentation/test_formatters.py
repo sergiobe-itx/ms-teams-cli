@@ -297,3 +297,99 @@ def test_format_chat_messages_table_plain_text(
     assert "Alice" in out
     assert "Hello" in out
     assert "1 messages." in out
+
+
+# === Calendar formatter tests ===
+
+
+def test_format_duration_minutes() -> None:
+    result = formatters._format_duration("2026-05-18T09:00:00", "2026-05-18T09:45:00")
+    assert result == "45m"
+
+
+def test_format_duration_hours() -> None:
+    result = formatters._format_duration("2026-05-18T09:00:00", "2026-05-18T11:00:00")
+    assert result == "2h"
+
+
+def test_format_duration_mixed() -> None:
+    result = formatters._format_duration("2026-05-18T09:00:00", "2026-05-18T10:30:00")
+    assert result == "1h30m"
+
+
+def test_format_duration_fractional() -> None:
+    result = formatters._format_duration(
+        "2026-05-18T09:00:00.0000000", "2026-05-18T09:30:00.0000000"
+    )
+    assert result == "30m"
+
+
+def test_format_duration_zero() -> None:
+    result = formatters._format_duration("2026-05-18T09:00:00", "2026-05-18T09:00:00")
+    assert result == "—"
+
+
+def test_format_calendar_table_empty(capsys: pytest.CaptureFixture[str]) -> None:
+
+    formatters.format_calendar_table([])
+
+    assert "No events found in this date range." in capsys.readouterr().out
+
+
+def test_format_calendar_table_plain_text(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    from ms_teams_cli.domain.entities import CalendarEvent
+
+    monkeypatch.setattr(formatters, "_is_tty", lambda: False)
+
+    events = [
+        CalendarEvent(
+            id="1",
+            subject="Standup",
+            start_datetime="2026-05-18T09:00:00",
+            end_datetime="2026-05-18T09:30:00",
+            start_timezone="UTC",
+            end_timezone="UTC",
+            organizer_name="Alice",
+        )
+    ]
+    formatters.format_calendar_table(events)
+
+    out = capsys.readouterr().out
+    assert "DATE" in out
+    assert "TIME" in out
+    assert "DURATION" in out
+    assert "SUBJECT" in out
+    assert "ORGANIZER" in out
+    assert "Standup" in out
+    assert "Alice" in out
+    assert "1 event(s) found." in out
+
+
+def test_format_calendar_table_all_day(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    from ms_teams_cli.domain.entities import CalendarEvent
+
+    monkeypatch.setattr(formatters, "_is_tty", lambda: False)
+
+    events = [
+        CalendarEvent(
+            id="1",
+            subject="Holiday",
+            start_datetime="2026-05-18T00:00:00",
+            end_datetime="2026-05-19T00:00:00",
+            start_timezone="UTC",
+            end_timezone="UTC",
+            is_all_day=True,
+            organizer_name="HR",
+        )
+    ]
+    formatters.format_calendar_table(events)
+
+    out = capsys.readouterr().out
+    assert "All day" in out
+    assert "—" in out

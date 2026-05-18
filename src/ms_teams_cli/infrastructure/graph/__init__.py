@@ -1,5 +1,6 @@
 """Graph infrastructure module."""
+from ms_teams_cli.infrastructure.graph.calendar_repository import GraphCalendarRepository
 from ms_teams_cli.infrastructure.graph.channel_repository import GraphChannelRepository
 from ms_teams_cli.infrastructure.graph.client import GraphClient
 
-__all__ = ["GraphChannelRepository", "GraphClient"]
+__all__ = ["GraphCalendarRepository", "GraphChannelRepository", "GraphClient"]

@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
 
     from ms_teams_cli.domain.entities import (
+        CalendarEvent,
         Channel,
         ChannelMessage,
         Chat,
@@ -352,3 +353,73 @@ def format_chat_messages_table(messages: list[ChatMessage]) -> None:
             row = f"{format_datetime(msg.compose_time):<20} {msg.sender_name:<25} {preview}"
             print(row)
     print(f"\n{len(messages)} messages.")
+
+
+def _format_duration(start_dt: str, end_dt: str) -> str:
+    """Return compact duration string: '45m', '1h30m', '2h', etc."""
+    try:
+        from datetime import datetime
+
+        def _parse(s: str) -> datetime:
+            s = s[:26]  # trim to microsecond precision
+            for f in ("%Y-%m-%dT%H:%M:%S.%f", "%Y-%m-%dT%H:%M:%S"):
+                try:
+                    return datetime.strptime(s, f)  # noqa: DTZ007
+                except ValueError:
+                    continue
+            return datetime.min  # noqa: DTZ007
+
+        delta = _parse(end_dt) - _parse(start_dt)
+        total_minutes = int(delta.total_seconds() // 60)
+        if total_minutes <= 0:
+            return "—"
+        h, m = divmod(total_minutes, 60)
+        if h == 0:
+            return f"{m}m"
+        if m == 0:
+            return f"{h}h"
+        return f"{h}h{m}m"
+    except Exception:  # noqa: BLE001
+        return "—"
+
+
+def format_calendar_table(events: list[CalendarEvent]) -> None:
+    """Print calendar events as Rich table on TTY and plain text otherwise."""
+    if not events:
+        _print_empty_result("No events found in this date range.")
+        return
+
+    if _is_tty():
+        console = Console()
+        table = Table(title="Calendar Events", show_header=True, header_style="bold cyan")
+        table.add_column("DATE", style="dim", min_width=10)
+        table.add_column("TIME", style="green", min_width=11)
+        table.add_column("DURATION", justify="right", min_width=8)
+        table.add_column("SUBJECT")
+        table.add_column("ORGANIZER", style="dim", min_width=20)
+        for ev in events:
+            date_str = ev.start_datetime[:10] if ev.start_datetime else ""
+            if ev.is_all_day:
+                time_str = "All day"
+                dur_str = "—"
+            else:
+                time_str = ev.start_datetime[11:16] if len(ev.start_datetime) > 16 else ""
+                dur_str = _format_duration(ev.start_datetime, ev.end_datetime)
+            table.add_row(date_str, time_str, dur_str, ev.subject, ev.organizer_name)
+        console.print(table)
+    else:
+        print(f"{'DATE':<12} {'TIME':<11} {'DURATION':<9} {'SUBJECT':<50} ORGANIZER")
+        print("-" * 110)
+        for ev in events:
+            date_str = ev.start_datetime[:10] if ev.start_datetime else ""
+            if ev.is_all_day:
+                time_str = "All day"
+                dur_str = "—"
+            else:
+                time_str = ev.start_datetime[11:16] if len(ev.start_datetime) > 16 else ""
+                dur_str = _format_duration(ev.start_datetime, ev.end_datetime)
+            print(
+                f"{date_str:<12} {time_str:<11} {dur_str:<9} "
+                f"{ev.subject[:48]:<50} {ev.organizer_name}"
+            )
+    print(f"\n{len(events)} event(s) found.")
