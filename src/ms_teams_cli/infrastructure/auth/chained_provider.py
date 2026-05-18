@@ -27,3 +27,16 @@ class ChainedTokenProvider:
             "Authentication failed. Run: ms-teams login\n\n"
             "Alternatively: az login --scope https://graph.microsoft.com/.default"
         ) from last_error
+
+    def renew(self) -> str:
+        """Renew token by trying each provider in order."""
+        last_error: AuthenticationError | None = None
+        for provider in self._providers:
+            try:
+                return provider.renew()
+            except AuthenticationError as exc:
+                last_error = exc
+        raise AuthenticationError(
+            "Token renewal failed. Run: ms-teams login\n\n"
+            "Alternatively: az login --scope https://graph.microsoft.com/.default"
+        ) from last_error

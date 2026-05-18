@@ -19,7 +19,9 @@ from ms_teams_cli.application.use_cases import (
 from ms_teams_cli.infrastructure.auth import (
     AzChatTokenProvider,
     AzGraphTokenProvider,
+    ChainedTokenProvider,
     ChatTokenCache,
+    MsalGraphTokenProvider,
     TokenCache,
 )
 from ms_teams_cli.infrastructure.chat import ChatServiceClient, ChatServiceRepository
@@ -30,9 +32,14 @@ from ms_teams_cli.infrastructure.graph import (
 )
 
 
+def _build_graph_token_provider() -> ChainedTokenProvider:
+    msal_provider = MsalGraphTokenProvider()
+    az_provider = AzGraphTokenProvider(cache=TokenCache())
+    return ChainedTokenProvider(providers=[msal_provider, az_provider])
+
+
 def _build_channel_repo() -> GraphChannelRepository:
-    provider = AzGraphTokenProvider(cache=TokenCache())
-    client = GraphClient(token_provider=provider)
+    client = GraphClient(token_provider=_build_graph_token_provider())
     return GraphChannelRepository(graph_client=client)
 
 
@@ -87,8 +94,7 @@ def get_resolve_chat_name() -> ResolveChatNameUseCase:
 
 
 def _build_calendar_repo() -> GraphCalendarRepository:
-    provider = AzGraphTokenProvider(cache=TokenCache())
-    client = GraphClient(token_provider=provider)
+    client = GraphClient(token_provider=_build_graph_token_provider())
     return GraphCalendarRepository(graph_client=client)
 
 

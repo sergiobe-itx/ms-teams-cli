@@ -368,6 +368,16 @@ def token_command() -> None:
         expiry_str = expires_on or "(unknown)"
 
         typer.echo(f"Token OK, expires: {expiry_str}")
+
+        # MSAL status
+        from ms_teams_cli.infrastructure.auth.msal_provider import MsalGraphTokenProvider
+        msal_provider = MsalGraphTokenProvider()
+        try:
+            msal_token = msal_provider.get_token()
+            _ = msal_token  # suppress unused warning
+            typer.echo("MSAL: authenticated (silent renewal available)")
+        except Exception:
+            typer.echo("MSAL: not logged in (run: ms-teams login)")
     except TeamsError as exc:
         typer.echo(str(exc), err=True)
         raise typer.Exit(code=1) from exc
