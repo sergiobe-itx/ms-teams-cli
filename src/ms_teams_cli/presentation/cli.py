@@ -3,17 +3,76 @@ from __future__ import annotations
 
 import json
 import sys
-from typing import Annotated, cast
+from typing import TYPE_CHECKING, Annotated, cast, override
 
 import typer
+from loguru import logger
+from typer.core import TyperGroup
 
 from ms_teams_cli.domain.exceptions import TeamsError
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence as SequenceCollection
+
+
+class TeamsTyperGroup(TyperGroup):
+    """Typer group with consistent top-level error handling."""
+
+    @override
+    def main(
+        self,
+        args: SequenceCollection[str] | None = None,
+        prog_name: str | None = None,
+        complete_var: str | None = None,
+        standalone_mode: bool = True,
+        windows_expand_args: bool = True,
+        **extra: object,
+    ) -> object:
+        try:
+            return cast(
+                "object",
+                super().main(
+                    args=args,
+                    prog_name=prog_name,
+                    complete_var=complete_var,
+                    standalone_mode=standalone_mode,
+                    windows_expand_args=windows_expand_args,
+                    **extra,
+                ),
+            )
+        except KeyboardInterrupt as exc:
+            typer.echo("Cancelled.", err=True)
+            raise typer.Exit(code=130) from exc
+        except TeamsError as exc:
+            typer.echo(str(exc), err=True)
+            raise typer.Exit(code=1) from exc
+
 
 app = typer.Typer(
     name="ms-teams",
     help="Microsoft Teams CLI — read channels and chats.",
+    cls=TeamsTyperGroup,
     no_args_is_help=True,
 )
+
+
+@app.callback()
+def main(
+    verbose: Annotated[
+        int,
+        typer.Option(  # pyright: ignore[reportUnknownMemberType]
+            "--verbose",
+            "-v",
+            count=True,
+            help="Increase verbosity (-v INFO, -vv DEBUG)",
+        ),
+    ] = 0,
+) -> None:
+    """Microsoft Teams CLI."""
+    if verbose == 0:
+        logger.disable("ms_teams_cli")
+    else:
+        logger.enable("ms_teams_cli")
 
 
 @app.command()
@@ -358,10 +417,6 @@ def token_command() -> None:
         raise typer.Exit(code=1) from exc
 
 
-if __name__ == "__main__":
-    app()
-
-
 @app.command("chats")
 def chats_command(
     chat_type: Annotated[
@@ -524,7 +579,10 @@ def send_message_command(
     if yes:
         confirmed = True
     elif sys.stdin.isatty():
-        answer = typer.prompt("\nSend this message? [y/N]", default="N")
+        answer = cast(
+            "str",
+            typer.prompt("\nSend this message? [y/N]", default="N"),
+        )
         confirmed = answer.strip().lower() == "y"
     else:
         confirmed = True
@@ -539,3 +597,7 @@ def send_message_command(
     except TeamsError as exc:
         typer.echo(str(exc), err=True)
         raise typer.Exit(code=1) from exc
+
+
+if __name__ == "__main__":
+    app()

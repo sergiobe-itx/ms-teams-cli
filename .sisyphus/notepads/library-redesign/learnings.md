@@ -88,3 +88,79 @@ src/ms_teams_cli/
 - Kept message retrieval lazy end-to-end: GraphClient.paginate() yields raw items, ChannelService.get_messages() yields validated ChannelMessage objects, and presentation handles filtering/HTML cleanup.
 - Introduced domain text helpers for HTML stripping and ISO datetime formatting, then reused them only in the message formatter to keep presentation concerns out of service/model layers.
 - Extended CLI/tests using the existing teams/channels pattern, including smoke coverage for `messages`, URL construction with `since`, and evidence files for text/model/pagination behaviors.
+
+## [2026-05-18] Task 7: unanswered + scan
+
+### Implementation
+- Added `find_unanswered()` with all 5 AND conditions faithfully ported from `_src.py:520-558`
+- Added `scan_activity()` with exact algorithm from `_src.py:560-678`: date validation, stop_before=target-3d, channel iteration, root collection, reply fetching, thread inclusion logic
+- Three new domain models: `ThreadActivity`, `ChannelActivity`, `ScanResult` (all with `model_config: ClassVar[ConfigDict]`)
+- Two new formatters: `format_unanswered_table()` (mirrors messages table style), `format_scan_result()` (per-channel thread summaries)
+- Two new CLI commands: `unanswered` (--team, --channel, --minutes) and `scan` (--team, --date, --pages, --top, --json)
+
+### Key Decisions
+1. **replyCount type safety**: `m.get("replyCount")` returns `object` from `dict[str, object]`. Used `isinstance(reply_count, int) and reply_count > 0` instead of `(m.get("replyCount") or 0) > 0` to satisfy pyright
+2. **datetime.UTC alias**: Ruff UP017 requires `datetime.UTC` over `timezone.utc` in Python 3.13
+3. **FakeGraphClient.paginate**: Added `stop_before: str | None = None` parameter to match real GraphClient signature
+4. **ValueError for scan date**: CLI catches `ValueError` separately from `TeamsError` since date validation is business logic, not an API error
+5. **Sequential API calls**: Kept scan_activity sequential (no asyncio/threading) matching `_src.py` behavior exactly
+
+### Gotchas
+- `paginate()` returns `Iterator` not `list` — need `list()` wrapper when collecting all results for dict comprehension
+- String date comparison (`createdDateTime[:10] >= stop_before`) works correctly for ISO dates
+- `.sisyphus/` is gitignored — evidence files exist on disk but not in git
+
+### All Checks Passing
+✓ ruff check src/ tests/ (0 issues)
+✓ pyright src/ (0 errors, 0 warnings)
+✓ pytest tests/ -v (51 passed — 10 new Task 7 tests)
+✓ uv run ms-teams unanswered --help (exit 0)
+✓ uv run ms-teams scan --help (exit 0)
+
+## [2026-05-18] Task 8: parse-url + token
+
+### Key Decisions
+1. **URL Parser as Pure Function**: `parse_teams_url()` is a stateless, pure function with no side effects. Returns `TeamsUrlComponents` Pydantic model for type safety.
+2. **Regex Patterns**: Used three fallback patterns (`/l/message/`, `/l/channel/`, `/l/team/`) to handle different Teams URL formats. Message pattern captures both channel and message IDs.
+3. **CLI Argument Handling**: `parse-url` accepts optional URL argument; prompts interactively if TTY and URL not provided; errors if non-TTY and URL missing.
+4. **Token Command**: Calls `AzGraphTokenProvider.renew()` to force refresh, then reads cache file directly to get expiry timestamp in ISO format.
+
+### Patterns & Conventions
+- **Lazy Imports**: All CLI commands import dependencies inside function body (not at module level) for faster startup.
+- **Error Handling**: Use `typer.echo(str(exc), err=True)` + `raise typer.Exit(code=1)` for consistent error reporting.
+- **Type Annotations**: All functions require full type hints; use `Annotated[...]` for CLI options/arguments.
+- **Pydantic Models**: Always include `model_config: ClassVar[ConfigDict] = ConfigDict(populate_by_name=True)` for consistency.
+
+### Gotchas & Lessons
+1. **Line Length**: Ruff enforces 100-char limit; split long f-strings across multiple lines with implicit concatenation.
+2. **Unused Imports**: Removed unused `datetime`, `UTC` imports and unused `pytest` import to pass ruff checks.
+3. **Type Narrowing**: Used `assert isinstance(url, str)` after conditional assignment to satisfy pyright's type checker.
+4. **Binary Operators**: Prefer `x or default` over if-else blocks for simple fallbacks (SIM108 rule).
+
+### Test Coverage
+- 8 tests for URL parser covering: full message URLs, URL encoding, channel-only URLs, team URLs, no-match cases, query params, empty strings, return type validation.
+- All 59 tests passing (51 existing + 8 new).
+
+
+## [2026-05-18] Task 10: unread + chat-messages
+- `consumptionhorizon` uses `or {}` pattern that triggers pyright "partially unknown" — use `conv.get(...)` without `or` then isinstance-check into cast
+- Chat API `lastMessage.id` is a numeric string (unix-ms timestamp); compare as int
+- `_as_payloads()` helper is reusable across all chat service methods
+- `model_validate()` with `populate_by_name=True` + aliases handles the lowercase chat API field names (messagetype, composetime, imdisplayname)
+- Evidence files go in `.sisyphus/evidence/` which is gitignored — don't try to `git add` them
+- Test count reached 100 (≥99 required) — 29 in test_chats.py alone
+
+## [2026-05-18] Task 11: send-message
+- `ChatServiceClient.post(url, body)` returns `dict[str, object]` — use `.get()` for result fields
+- `messagetype` detection: simple `"<" in message` check distinguishes HTML from plain text
+- NO robot emoji prefix (🤖) — explicitly removed from original `_src.py` behavior per spec
+- TTY detection pattern: `sys.stdin.isatty()` — if piped (non-TTY), skip confirmation (scripting-friendly)
+- `--yes` flag provides explicit confirmation bypass independent of TTY state
+- `resolve_chat_name()` wraps in `try/except Exception` with `# noqa: BLE001` — API errors shouldn't crash name resolution
+- FakeChatClient needed `post()` method + `post_calls` tracker + `post_response` field for send tests
+- 108 tests total (8 new), all passing
+
+## [2026-05-18] Task 12: Polish
+- Added a global Typer callback with `--verbose` / `-v` and a custom `TeamsTyperGroup` wrapper so CLI-level `KeyboardInterrupt` and uncaught `TeamsError` exit cleanly with user-facing stderr output.
+- Moved the `if __name__ == "__main__": app()` guard to the very end of `presentation/cli.py` and exported the public package surface via `src/ms_teams_cli/__init__.py` while keeping loguru disabled by default at import time.
+- Raised coverage by adding dedicated formatter tests plus CLI polish/integration tests for help output, empty-result behavior, token flows, parse-url prompting, send-message confirmation, and command-level error handling; final suite reached 87.12% coverage.

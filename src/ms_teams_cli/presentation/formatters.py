@@ -44,7 +44,7 @@ def _is_tty() -> bool:
 def format_teams_table(teams: list[Team]) -> None:
     """Print teams as Rich table on TTY and plain text otherwise."""
     if not teams:
-        print("No teams found.")
+        _print_empty_result("No teams found.")
         return
 
     if _is_tty():
@@ -66,7 +66,7 @@ def format_teams_table(teams: list[Team]) -> None:
 def format_channels_table(channels: list[Channel]) -> None:
     """Print channels as Rich table on TTY and plain text otherwise."""
     if not channels:
-        print("No channels found.")
+        _print_empty_result("No channels found.")
         return
 
     if _is_tty():
@@ -101,6 +101,10 @@ def format_json(data: object) -> None:
         )
         return
     print(json.dumps(data, indent=2, ensure_ascii=False))
+
+
+def _print_empty_result(message: str = "No results found.") -> None:
+    print(message)
 
 
 def format_messages_table(messages: Iterable[ChannelMessage]) -> None:
@@ -144,7 +148,7 @@ def format_messages_table(messages: Iterable[ChannelMessage]) -> None:
             print(row)
             count += 1
     if count == 0:
-        print("No messages found.")
+        _print_empty_result("No messages found.")
         return
     print(f"\n{count} messages.")
 
@@ -160,7 +164,7 @@ def format_thread(parent: ChannelMessage, replies: list[ChannelMessage]) -> None
     print()
     print(f"── REPLIES ({len(replies)} total) " + "─" * 40)
     if not replies:
-        print("  (no replies)")
+        _print_empty_result("No replies found.")
     for i, msg in enumerate(replies, 1):
         print(f"[{i}] {msg.author.display_name} @ {format_datetime(msg.created_date_time)}")
         print(f"    {strip_html(msg.body.content)[:200]}")
@@ -173,7 +177,7 @@ def format_unanswered_table(messages: list[ChannelMessage], minutes: int) -> Non
     from ms_teams_cli.domain.text import format_datetime, strip_html
 
     if not messages:
-        print(f"No unanswered posts in last {minutes} min.")
+        _print_empty_result(f"No unanswered posts in last {minutes} min.")
         return
 
     if _is_tty():
@@ -213,7 +217,7 @@ def format_scan_result(result: ScanResult) -> None:
     from ms_teams_cli.domain.text import format_datetime, strip_html
 
     if not result.channels:
-        print(f"No activity found on {result.date}.")
+        _print_empty_result(f"No activity found on {result.date}.")
         return
 
     total_posts = 0
@@ -251,7 +255,7 @@ def format_chats_table(chats: list[Chat]) -> None:
     from ms_teams_cli.domain.text import format_datetime
 
     if not chats:
-        print("No chats found.")
+        _print_empty_result("No chats found.")
         return
 
     if _is_tty():
@@ -287,7 +291,7 @@ def format_unread_table(chats: list[Chat]) -> None:
     from ms_teams_cli.domain.text import format_datetime
 
     if not chats:
-        print("No unread chats.")
+        _print_empty_result("No unread chats.")
         return
 
     if _is_tty():
@@ -323,7 +327,7 @@ def format_chat_messages_table(messages: list[ChatMessage]) -> None:
     from ms_teams_cli.domain.text import format_datetime, strip_html
 
     if not messages:
-        print("No messages found.")
+        _print_empty_result("No messages found.")
         return
 
     if _is_tty():
