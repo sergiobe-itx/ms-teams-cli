@@ -284,5 +284,78 @@ def scan_command(
     format_scan_result(result)
 
 
+@app.command("parse-url")
+def parse_url_command(
+    url: Annotated[
+        str | None,
+        typer.Argument(help="Teams URL to parse"),  # pyright: ignore[reportUnknownMemberType]
+    ] = None,
+) -> None:
+    """Parse a Teams URL and extract IDs."""
+    import sys
+
+    from ms_teams_cli.domain.url_parser import parse_teams_url
+
+    if url is None:
+        if sys.stdin.isatty():
+            url = typer.prompt("Teams URL")
+        else:
+            typer.echo("Error: URL argument required when not in interactive mode", err=True)
+            raise typer.Exit(code=1)
+
+    assert isinstance(url, str)
+    components = parse_teams_url(url)
+
+    typer.echo(f"TEAM_ID    : {components.team_id or '(not found)'}")
+    typer.echo(f"CHANNEL_ID : {components.channel_id or '(not found)'}")
+    typer.echo(f"MESSAGE_ID : {components.message_id or '(not found)'}")
+    typer.echo(f"TENANT_ID  : {components.tenant_id or '(not found)'}")
+
+    if components.team_id:
+        typer.echo()
+        typer.echo(f"ms-teams channels --team {components.team_id}")
+    if components.team_id and components.channel_id:
+        typer.echo(
+            f"ms-teams messages --team {components.team_id} --channel {components.channel_id}"
+        )
+    if components.team_id and components.channel_id and components.message_id:
+        typer.echo(
+            f"ms-teams replies --team {components.team_id} "
+            f"--channel {components.channel_id} --thread {components.message_id}"
+        )
+
+
+@app.command("token")
+def token_command() -> None:
+    """Force token renewal and show expiry."""
+    import json
+
+    from ms_teams_cli.domain.exceptions import TeamsError
+    from ms_teams_cli.infrastructure.az_provider import AzGraphTokenProvider
+    from ms_teams_cli.infrastructure.token_cache import TokenCache
+
+    try:
+        cache = TokenCache()
+        provider = AzGraphTokenProvider(cache=cache)
+        provider.renew()
+        cached = cache.load()
+        if cached is None:
+            typer.echo("Error: Token cache is empty after renewal", err=True)
+            raise typer.Exit(code=1)
+
+        data = cache.path.read_text(encoding="utf-8")
+        token_data = json.loads(data)
+        expires_on = token_data.get("expiresOn", "")
+        expiry_str = expires_on or "(unknown)"
+
+        typer.echo(f"Token OK, expires: {expiry_str}")
+    except TeamsError as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(code=1) from exc
+    except Exception as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+
+
 if __name__ == "__main__":
     app()
