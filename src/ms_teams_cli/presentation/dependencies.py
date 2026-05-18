@@ -17,17 +17,15 @@ from ms_teams_cli.application.use_cases import (
     SendMessageUseCase,
 )
 from ms_teams_cli.infrastructure.auth import (
-    AzChatTokenProvider,
     AzGraphTokenProvider,
     ChainedTokenProvider,
-    ChatTokenCache,
     MsalGraphTokenProvider,
     TokenCache,
 )
-from ms_teams_cli.infrastructure.chat import ChatServiceClient, ChatServiceRepository
 from ms_teams_cli.infrastructure.graph import (
     GraphCalendarRepository,
     GraphChannelRepository,
+    GraphChatRepository,
     GraphClient,
 )
 
@@ -43,10 +41,9 @@ def _build_channel_repo() -> GraphChannelRepository:
     return GraphChannelRepository(graph_client=client)
 
 
-def _build_chat_repo() -> ChatServiceRepository:
-    provider = AzChatTokenProvider(cache=ChatTokenCache())
-    client = ChatServiceClient(token_provider=provider)
-    return ChatServiceRepository(chat_client=client)
+def _build_chat_repo() -> GraphChatRepository:
+    client = GraphClient(token_provider=_build_graph_token_provider())
+    return GraphChatRepository(graph_client=client)
 
 
 def get_list_teams() -> ListTeamsUseCase:
