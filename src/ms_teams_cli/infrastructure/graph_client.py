@@ -5,8 +5,8 @@ from typing import TYPE_CHECKING, Protocol, cast
 
 import httpx
 
-from ms_teams_cli.domain.auth import TokenProvider
 from ms_teams_cli.domain.exceptions import GraphAPIError
+from ms_teams_cli.domain.ports import TokenProvider
 
 if TYPE_CHECKING:
     from collections.abc import Iterator

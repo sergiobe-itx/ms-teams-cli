@@ -8,7 +8,7 @@ import httpx
 from ms_teams_cli.domain.exceptions import ChatServiceAPIError
 
 if TYPE_CHECKING:
-    from ms_teams_cli.domain.auth import ChatTokenProvider
+    from ms_teams_cli.domain.ports import ChatTokenProvider
 
 
 @runtime_checkable

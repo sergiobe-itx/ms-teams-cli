@@ -1,4 +1,4 @@
-"""Authentication protocols for ms-teams-cli."""
+"""Token provider protocols for ms-teams-cli."""
 from __future__ import annotations
 
 from typing import Protocol, runtime_checkable
