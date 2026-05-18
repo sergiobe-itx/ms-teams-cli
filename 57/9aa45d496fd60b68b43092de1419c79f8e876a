@@ -1,0 +1,49 @@
+src/ms_teams_cli/domain/models.py
+  s_0215b58fcf3077::t_7f8b7392c8ea98 4,110-130
+tests/test_chats.py
+  s_0215b58fcf3077::t_600fcb313da0ef 5,31-37,39,44,56,64,72
+  s_0215b58fcf3077::t_f9c5bb5860ab4a 297
+  s_0215b58fcf3077::t_327d2616ca92fe 1-4,6-30,38,40-43,45-55,57-63,65-71,73-122,128-161,165-296
+  s_0215b58fcf3077::t_f6aa2f725a70df 123-127,162-164
+src/ms_teams_cli/domain/chat_classifier.py
+  s_0215b58fcf3077::t_7f8b7392c8ea98 1-17
+src/ms_teams_cli/presentation/formatters.py
+  s_0215b58fcf3077::t_7f8b7392c8ea98 14,240-268,271-273,275
+  s_0215b58fcf3077::t_600fcb313da0ef 270
+  s_0215b58fcf3077::t_0b21aa75eba727 269,274
+  s_0215b58fcf3077::t_f6aa2f725a70df 196,198,200
+src/ms_teams_cli/infrastructure/chat_client.py
+  s_0215b58fcf3077::t_0b21aa75eba727 51-52,69-70
+  s_0215b58fcf3077::t_7f8b7392c8ea98 1-3,5-19,21-23,25-30,32-37,39-50,55-68,71-91
+  s_0215b58fcf3077::t_600fcb313da0ef 4,20,24,31,38,53-54,92-97
+src/ms_teams_cli/domain/chat_display.py
+  s_0215b58fcf3077::t_600fcb313da0ef 4,10,12,16,24-25,27,29,40,63,66-67,73-84
+  s_0215b58fcf3077::t_7f8b7392c8ea98 1-3,5-9,11,13-15,17-23,26,28,30-39,41-62,64-65,68-72
+src/ms_teams_cli/presentation/cli.py
+  s_0215b58fcf3077::t_5fc05cba74c563 323-325,327
+  s_0215b58fcf3077::t_7f8b7392c8ea98 362-409
+  s_0215b58fcf3077::t_600fcb313da0ef 4-5,340,347
+  s_0215b58fcf3077::t_0b21aa75eba727 302
+tests/test_chat_client.py
+  s_0215b58fcf3077::t_600fcb313da0ef 4,22-26
+  s_0215b58fcf3077::t_327d2616ca92fe 1-3,5-21,27-174
+src/ms_teams_cli/application/chats.py
+  s_0215b58fcf3077::t_600fcb313da0ef 4,15,19,22,30,53
+  s_0215b58fcf3077::t_7f8b7392c8ea98 1-3,5-14,16-18,20-21,23-29,31-52,54-68
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.9",
+  "base_commit_sha": "579aa45d496fd60b68b43092de1419c79f8e876a",
+  "prompts": {},
+  "sessions": {
+    "s_0215b58fcf3077": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_1c5dbd417ffeo1e2McENDltOy0",
+        "model": "gpt-5.4"
+      },
+      "human_author": "Sergio Bugallo Enjamio <sergiobe@inditex.com>"
+    }
+  }
+}
