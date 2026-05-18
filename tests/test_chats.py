@@ -15,7 +15,7 @@ import ms_teams_cli.presentation.formatters as formatters_module
 from ms_teams_cli.application.chats import ChatService
 from ms_teams_cli.domain.chat_classifier import classify_chat, is_unread
 from ms_teams_cli.domain.chat_display import resolve_display_name
-from ms_teams_cli.domain.models import Chat, ChatType
+from ms_teams_cli.domain.entities import Chat, ChatType
 
 if TYPE_CHECKING:
     import pytest

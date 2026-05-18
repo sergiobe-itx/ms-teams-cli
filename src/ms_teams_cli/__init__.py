@@ -5,8 +5,15 @@ from loguru import logger
 
 from ms_teams_cli.application.channels import ChannelService
 from ms_teams_cli.application.chats import ChatService
+from ms_teams_cli.domain.entities import (
+    Channel,
+    ChannelMessage,
+    Chat,
+    ChatMessage,
+    ScanResult,
+    Team,
+)
 from ms_teams_cli.domain.exceptions import APIError, AuthenticationError, TeamsError
-from ms_teams_cli.domain.models import Channel, ChannelMessage, Chat, ChatMessage, ScanResult, Team
 
 __version__ = "0.1.0"
 

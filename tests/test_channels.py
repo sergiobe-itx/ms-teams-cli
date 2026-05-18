@@ -14,7 +14,7 @@ import ms_teams_cli.infrastructure.token_cache as token_cache_module
 import ms_teams_cli.presentation.cli as cli_module
 import ms_teams_cli.presentation.formatters as formatters_module
 from ms_teams_cli.application.channels import ChannelService
-from ms_teams_cli.domain.models import Channel, ChannelMessage, MessageAuthor, MessageBody, Team
+from ms_teams_cli.domain.entities import Channel, ChannelMessage, MessageAuthor, MessageBody, Team
 
 if TYPE_CHECKING:
     import pytest

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import cast
 
-from ms_teams_cli.domain.models import ChatType
+from ms_teams_cli.domain.entities import ChatType
 
 
 def classify_chat(conv_id: str) -> ChatType:

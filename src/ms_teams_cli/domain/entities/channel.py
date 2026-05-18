@@ -1,20 +1,9 @@
-"""Domain models for ms-teams-cli."""
+"""Channel and message entities."""
 from __future__ import annotations
 
-from enum import StrEnum
 from typing import ClassVar, cast
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
-
-
-class Team(BaseModel):
-    """A Microsoft Teams team."""
-
-    id: str
-    display_name: str = Field(alias="displayName")
-    description: str | None = Field(default=None, alias="description")
-
-    model_config: ClassVar[ConfigDict] = ConfigDict(populate_by_name=True)
 
 
 class Channel(BaseModel):
@@ -78,65 +67,3 @@ class ChannelMessage(BaseModel):
         if "author" not in result:
             result["author"] = {"displayName": display_name}
         return result
-
-
-class ThreadActivity(BaseModel):
-    """A thread and its replies on a specific date."""
-
-    model_config: ClassVar[ConfigDict] = ConfigDict(populate_by_name=True)
-
-    root_message: ChannelMessage
-    replies_on_date: list[ChannelMessage]
-    root_created_on_date: bool
-
-
-class ChannelActivity(BaseModel):
-    """Activity summary for a single channel on a specific date."""
-
-    model_config: ClassVar[ConfigDict] = ConfigDict(populate_by_name=True)
-
-    channel_name: str
-    channel_id: str
-    threads: list[ThreadActivity]
-
-
-class ScanResult(BaseModel):
-    """Result of scanning all channels for activity on a date."""
-
-    model_config: ClassVar[ConfigDict] = ConfigDict(populate_by_name=True)
-
-    date: str
-    channels: list[ChannelActivity]
-
-
-class ChatType(StrEnum):
-    """Classification of a Teams chat conversation."""
-
-    ONE_TO_ONE = "1:1"
-    GROUP = "group"
-    MEETING = "meeting"
-    OTHER = "other"
-
-
-class Chat(BaseModel):
-    """A Teams chat conversation."""
-
-    model_config: ClassVar[ConfigDict] = ConfigDict(populate_by_name=True)
-
-    id: str
-    chat_type: ChatType
-    display_name: str
-    last_message_preview: str | None = None
-    last_message_time: str | None = None
-
-
-class ChatMessage(BaseModel):
-    """A message in a Teams chat conversation."""
-
-    model_config: ClassVar[ConfigDict] = ConfigDict(populate_by_name=True)
-
-    id: str
-    compose_time: str = Field(default="", alias="composetime")
-    sender_name: str = Field(default="(unknown)", alias="imdisplayname")
-    content: str = Field(default="")
-    message_type: str = Field(default="Text", alias="messagetype")

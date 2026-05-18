@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from ms_teams_cli.domain.models import (
+from ms_teams_cli.domain.entities import (
     Channel,
     ChannelActivity,
     ChannelMessage,

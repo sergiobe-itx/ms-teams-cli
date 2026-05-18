@@ -436,7 +436,7 @@ def chats_command(
 ) -> None:
     """List chats from the Teams chat service."""
     from ms_teams_cli.application.chats import ChatService
-    from ms_teams_cli.domain.models import ChatType
+    from ms_teams_cli.domain.entities import ChatType
     from ms_teams_cli.infrastructure.az_provider import AzChatTokenProvider
     from ms_teams_cli.infrastructure.chat_client import ChatServiceClient
     from ms_teams_cli.infrastructure.token_cache import ChatTokenCache
@@ -480,7 +480,7 @@ def unread_command(
 ) -> None:
     """List chats with unread messages."""
     from ms_teams_cli.application.chats import ChatService
-    from ms_teams_cli.domain.models import ChatType
+    from ms_teams_cli.domain.entities import ChatType
     from ms_teams_cli.infrastructure.az_provider import AzChatTokenProvider
     from ms_teams_cli.infrastructure.chat_client import ChatServiceClient
     from ms_teams_cli.infrastructure.token_cache import ChatTokenCache

@@ -5,7 +5,7 @@ import re
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, cast
 
-from ms_teams_cli.domain.models import (
+from ms_teams_cli.domain.entities import (
     Channel,
     ChannelActivity,
     ChannelMessage,

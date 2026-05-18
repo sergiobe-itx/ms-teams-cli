@@ -11,7 +11,7 @@ from rich.table import Table
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
-    from ms_teams_cli.domain.models import (
+    from ms_teams_cli.domain.entities import (
         Channel,
         ChannelMessage,
         Chat,

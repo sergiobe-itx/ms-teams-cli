@@ -31,7 +31,7 @@ from ms_teams_cli import (
     TeamsError,
     __all__,
 )
-from ms_teams_cli.domain.models import ChatType, MessageAuthor, MessageBody
+from ms_teams_cli.domain.entities import ChatType, MessageAuthor, MessageBody
 
 runner = CliRunner()
 app = cli_module.app
