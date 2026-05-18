@@ -1,0 +1,22 @@
+src/ms_teams_cli/domain/ports/__init__.py
+  s_ebd3731090472f::t_e0056648e33f70 4
+  s_ebd3731090472f::t_cd91257a7b06bd 12
+src/ms_teams_cli/domain/ports/calendar_repository.py
+  s_ebd3731090472f::t_e53db0356389e8 1-15
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.9",
+  "base_commit_sha": "5f5197dd0fcd9e50048634ad1495d96c15758336",
+  "prompts": {},
+  "sessions": {
+    "s_ebd3731090472f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_1c5356102ffeIgjSBCQoSFXGvq",
+        "model": "unknown"
+      },
+      "human_author": "Sergio Bugallo Enjamio <sergiobe@inditex.com>"
+    }
+  }
+}
