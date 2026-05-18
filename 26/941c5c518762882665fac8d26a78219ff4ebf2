@@ -1,0 +1,26 @@
+tests/test_chats.py
+  s_3f7453237f557c::t_6f9c776d97275f 489-584
+  s_3f7453237f557c::t_dbd097f2281aa6 40-41,50-52
+src/ms_teams_cli/presentation/cli.py
+  s_3f7453237f557c::t_fcc2b3157d0219 498-500
+  s_3f7453237f557c::t_d7ee84e54e63da 5
+  s_3f7453237f557c::t_5ce5f9a082a3d0 494-497,501-541
+src/ms_teams_cli/application/chats.py
+  s_3f7453237f557c::t_2cc437dde3f0be 103-127
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.9",
+  "base_commit_sha": "26941c5c518762882665fac8d26a78219ff4ebf2",
+  "prompts": {},
+  "sessions": {
+    "s_3f7453237f557c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_1c5cd2c5cffeNPlmIDk7ZZ7LLq",
+        "model": "unknown"
+      },
+      "human_author": "Sergio Bugallo Enjamio <sergiobe@inditex.com>"
+    }
+  }
+}
