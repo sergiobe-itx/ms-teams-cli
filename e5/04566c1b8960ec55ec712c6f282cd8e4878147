@@ -1,0 +1,39 @@
+src/ms_teams_cli/application/use_cases/channels/__init__.py
+  s_85b3787f5f0a7d::t_85606292d9cc5a 1-18
+src/ms_teams_cli/application/use_cases/channels/get_messages.py
+  s_85b3787f5f0a7d::t_26d772ec906d69 10
+  s_85b3787f5f0a7d::t_1c37984c6d3e14 1-9,11-31
+src/ms_teams_cli/application/use_cases/channels/scan_activity.py
+  s_85b3787f5f0a7d::t_94811d4b294661 1-7,9-27
+  s_85b3787f5f0a7d::t_183e04823fb32a 8
+src/ms_teams_cli/application/use_cases/channels/get_thread.py
+  s_85b3787f5f0a7d::t_d08162599a6a5c 1-7,9-27
+  s_85b3787f5f0a7d::t_841da2573c055d 8
+src/ms_teams_cli/application/use_cases/channels/list_channels.py
+  s_85b3787f5f0a7d::t_0b2292138505ac 8
+  s_85b3787f5f0a7d::t_bd643f94bfc202 1-7,9-16
+src/ms_teams_cli/application/use_cases/__init__.py
+  s_85b3787f5f0a7d::t_a51422b2cf3d8e 1
+src/ms_teams_cli/application/use_cases/channels/find_unanswered.py
+  s_85b3787f5f0a7d::t_ac6bad9f6fdca5 1-7,9-25
+  s_85b3787f5f0a7d::t_a2a32d545eabf2 8
+src/ms_teams_cli/application/use_cases/channels/list_teams.py
+  s_85b3787f5f0a7d::t_25e14ca83e3269 1-7,9-16
+  s_85b3787f5f0a7d::t_50b4c4bacaaafd 8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.9",
+  "base_commit_sha": "e504566c1b8960ec55ec712c6f282cd8e4878147",
+  "prompts": {},
+  "sessions": {
+    "s_85b3787f5f0a7d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_1c5833b44ffeeuvcI6j6HF0h4E",
+        "model": "unknown"
+      },
+      "human_author": "Sergio Bugallo Enjamio <sergiobe@inditex.com>"
+    }
+  }
+}
