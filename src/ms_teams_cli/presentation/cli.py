@@ -376,6 +376,34 @@ def token_command() -> None:
         raise typer.Exit(code=1) from exc
 
 
+@app.command("login")
+def login_command() -> None:
+    """Authenticate via MSAL device-code flow and cache the token."""
+    from ms_teams_cli.domain.exceptions import TeamsError
+    from ms_teams_cli.infrastructure.auth.msal_provider import MsalGraphTokenProvider
+
+    try:
+        provider = MsalGraphTokenProvider()
+        _ = provider.login()
+        typer.echo("Login successful. Token cached.")
+    except TeamsError as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(code=1) from exc
+    except Exception as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+
+
+@app.command("logout")
+def logout_command() -> None:
+    """Clear the MSAL token cache (sign out)."""
+    from ms_teams_cli.infrastructure.auth.msal_provider import MsalGraphTokenProvider
+
+    provider = MsalGraphTokenProvider()
+    provider.logout()
+    typer.echo("Logged out. MSAL cache cleared.")
+
+
 @app.command("chats")
 def chats_command(
     chat_type: Annotated[
