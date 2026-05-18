@@ -1,5 +1,6 @@
 """Application use cases for ms-teams-cli."""
 
+from .calendar import ListCalendarEventsUseCase
 from .channels import (
     FindUnansweredUseCase,
     GetMessagesUseCase,
@@ -21,6 +22,7 @@ __all__ = [
     "GetChatMessagesUseCase",
     "GetMessagesUseCase",
     "GetThreadUseCase",
+    "ListCalendarEventsUseCase",
     "ListChannelsUseCase",
     "ListChatsUseCase",
     "ListTeamsUseCase",

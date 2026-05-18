@@ -12,4 +12,5 @@ class SendMessageUseCase:
         self._repo = repo
 
     def execute(self, chat_id: str, message: str) -> str:
-        return self._repo.send_message(chat_id, message)
+        prefixed = message if message.startswith("🤖") else f"🤖 {message}"
+        return self._repo.send_message(chat_id, prefixed)
