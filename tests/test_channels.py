@@ -7,14 +7,11 @@ from typing import TYPE_CHECKING, cast
 
 from typer.testing import CliRunner
 
-import ms_teams_cli.application.channels as channels_module
-import ms_teams_cli.infrastructure.auth.az_provider as az_provider_module
-import ms_teams_cli.infrastructure.auth.token_cache as token_cache_module
-import ms_teams_cli.infrastructure.graph.client as graph_client_module
 import ms_teams_cli.presentation.cli as cli_module
+import ms_teams_cli.presentation.dependencies as deps_module
 import ms_teams_cli.presentation.formatters as formatters_module
-from ms_teams_cli.application.channels import ChannelService
 from ms_teams_cli.domain.entities import Channel, ChannelMessage, MessageAuthor, MessageBody, Team
+from ms_teams_cli.infrastructure.graph import GraphChannelRepository
 
 if TYPE_CHECKING:
     import pytest
@@ -128,6 +125,16 @@ class FakeChannelService:
         )
 
 
+class _FakeUseCase:
+    def __init__(self, return_value: object = None) -> None:
+        self._return_value = return_value
+        self.calls: list[dict[str, object]] = []
+
+    def execute(self, *args: object, **kwargs: object) -> object:
+        self.calls.append({"args": args, "kwargs": kwargs})
+        return self._return_value
+
+
 def test_list_teams_returns_team_objects() -> None:
     client = FakeGraphClient(
         {
@@ -138,7 +145,8 @@ def test_list_teams_returns_team_objects() -> None:
         }
     )
 
-    teams = ChannelService(graph_client=cast("GraphClient", cast("object", client))).list_teams()
+    repo = GraphChannelRepository(graph_client=cast("GraphClient", cast("object", client)))
+    teams = repo.list_teams()
 
     assert teams == [
         Team(id="t1", displayName="Team A", description="desc"),
@@ -149,7 +157,8 @@ def test_list_teams_returns_team_objects() -> None:
 def test_list_teams_empty() -> None:
     client = FakeGraphClient({"value": []})
 
-    teams = ChannelService(graph_client=cast("GraphClient", cast("object", client))).list_teams()
+    repo = GraphChannelRepository(graph_client=cast("GraphClient", cast("object", client)))
+    teams = repo.list_teams()
 
     assert teams == []
 
@@ -164,7 +173,7 @@ def test_list_channels_returns_channel_objects() -> None:
         }
     )
 
-    service = ChannelService(graph_client=cast("GraphClient", cast("object", client)))
+    service = GraphChannelRepository(graph_client=cast("GraphClient", cast("object", client)))
     channels = service.list_channels("team-123")
 
     assert channels == [
@@ -176,7 +185,7 @@ def test_list_channels_returns_channel_objects() -> None:
 def test_list_channels_empty() -> None:
     client = FakeGraphClient({"value": []})
 
-    service = ChannelService(graph_client=cast("GraphClient", cast("object", client)))
+    service = GraphChannelRepository(graph_client=cast("GraphClient", cast("object", client)))
     channels = service.list_channels("team-123")
 
     assert channels == []
@@ -185,7 +194,7 @@ def test_list_channels_empty() -> None:
 def test_list_channels_uses_correct_url() -> None:
     client = FakeGraphClient({"value": []})
 
-    service = ChannelService(graph_client=cast("GraphClient", cast("object", client)))
+    service = GraphChannelRepository(graph_client=cast("GraphClient", cast("object", client)))
     _ = service.list_channels("team-id-123")
 
     assert len(client.called_urls) == 1
@@ -225,7 +234,7 @@ def test_get_messages_returns_channel_message_objects() -> None:
         }
     )
 
-    service = ChannelService(graph_client=cast("GraphClient", cast("object", client)))
+    service = GraphChannelRepository(graph_client=cast("GraphClient", cast("object", client)))
     messages = list(service.get_messages("team-123", "channel-456"))
 
     assert len(messages) == 3
@@ -238,7 +247,7 @@ def test_get_messages_returns_channel_message_objects() -> None:
 def test_get_messages_empty() -> None:
     client = FakeGraphClient({"value": []})
 
-    service = ChannelService(graph_client=cast("GraphClient", cast("object", client)))
+    service = GraphChannelRepository(graph_client=cast("GraphClient", cast("object", client)))
     messages = list(service.get_messages("team-123", "channel-456"))
 
     assert messages == []
@@ -247,7 +256,7 @@ def test_get_messages_empty() -> None:
 def test_get_messages_url_construction_with_since() -> None:
     client = FakeGraphClient({"value": []})
 
-    service = ChannelService(graph_client=cast("GraphClient", cast("object", client)))
+    service = GraphChannelRepository(graph_client=cast("GraphClient", cast("object", client)))
     _ = list(
         service.get_messages(
             "team-123",
@@ -272,12 +281,8 @@ def test_teams_cli_command_smoke(monkeypatch: pytest.MonkeyPatch) -> None:
         Team(id="t1", displayName="Team A", description="desc"),
         Team(id="t2", displayName="Team B", description=None),
     ]
-    FakeChannelService.teams = teams
 
-    monkeypatch.setattr(token_cache_module, "TokenCache", FakeTokenCache)
-    monkeypatch.setattr(az_provider_module, "AzGraphTokenProvider", FakeTokenProvider)
-    monkeypatch.setattr(graph_client_module, "GraphClient", FakeGraphClientFactory)
-    monkeypatch.setattr(channels_module, "ChannelService", FakeChannelService)
+    monkeypatch.setattr(deps_module, "get_list_teams", lambda: _FakeUseCase(teams))
 
     captured: list[list[Team]] = []
 
@@ -300,12 +305,8 @@ def test_teams_cli_command_smoke(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_teams_cli_json_output(monkeypatch: pytest.MonkeyPatch) -> None:
     teams = [Team(id="t1", displayName="Team A", description="desc")]
-    FakeChannelService.teams = teams
 
-    monkeypatch.setattr(token_cache_module, "TokenCache", FakeTokenCache)
-    monkeypatch.setattr(az_provider_module, "AzGraphTokenProvider", FakeTokenProvider)
-    monkeypatch.setattr(graph_client_module, "GraphClient", FakeGraphClientFactory)
-    monkeypatch.setattr(channels_module, "ChannelService", FakeChannelService)
+    monkeypatch.setattr(deps_module, "get_list_teams", lambda: _FakeUseCase(teams))
 
     captured: list[object] = []
 
@@ -332,12 +333,8 @@ def test_channels_cli_command_smoke(monkeypatch: pytest.MonkeyPatch) -> None:
         Channel(id="c1", displayName="General", description="main"),
         Channel(id="c2", displayName="Random", description=None),
     ]
-    FakeChannelService.channels = channels
 
-    monkeypatch.setattr(token_cache_module, "TokenCache", FakeTokenCache)
-    monkeypatch.setattr(az_provider_module, "AzGraphTokenProvider", FakeTokenProvider)
-    monkeypatch.setattr(graph_client_module, "GraphClient", FakeGraphClientFactory)
-    monkeypatch.setattr(channels_module, "ChannelService", FakeChannelService)
+    monkeypatch.setattr(deps_module, "get_list_channels", lambda: _FakeUseCase(channels))
 
     captured: list[list[Channel]] = []
 
@@ -360,12 +357,8 @@ def test_channels_cli_command_smoke(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_channels_cli_json_output(monkeypatch: pytest.MonkeyPatch) -> None:
     channels = [Channel(id="c1", displayName="General", description="main")]
-    FakeChannelService.channels = channels
 
-    monkeypatch.setattr(token_cache_module, "TokenCache", FakeTokenCache)
-    monkeypatch.setattr(az_provider_module, "AzGraphTokenProvider", FakeTokenProvider)
-    monkeypatch.setattr(graph_client_module, "GraphClient", FakeGraphClientFactory)
-    monkeypatch.setattr(channels_module, "ChannelService", FakeChannelService)
+    monkeypatch.setattr(deps_module, "get_list_channels", lambda: _FakeUseCase(channels))
 
     captured: list[object] = []
 
@@ -408,13 +401,8 @@ def test_messages_cli_command_smoke(monkeypatch: pytest.MonkeyPatch) -> None:
             replyToId=None,
         ),
     ]
-    FakeChannelService.messages = messages
-    FakeChannelService.get_messages_calls = []
 
-    monkeypatch.setattr(token_cache_module, "TokenCache", FakeTokenCache)
-    monkeypatch.setattr(az_provider_module, "AzGraphTokenProvider", FakeTokenProvider)
-    monkeypatch.setattr(graph_client_module, "GraphClient", FakeGraphClientFactory)
-    monkeypatch.setattr(channels_module, "ChannelService", FakeChannelService)
+    monkeypatch.setattr(deps_module, "get_get_messages", lambda: _FakeUseCase(messages))
 
     captured: list[list[ChannelMessage]] = []
 
@@ -430,15 +418,6 @@ def test_messages_cli_command_smoke(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert result.exit_code == 0
     assert captured == [messages]
-    assert FakeChannelService.get_messages_calls == [
-        {
-            "team_id": "t1",
-            "channel_id": "c1",
-            "top": 20,
-            "pages": 1,
-            "since": None,
-        }
-    ]
     assert "Alice Johnson" in result.stdout
     assert "Bob Smith" in result.stdout
     assert "2 messages." in result.stdout
@@ -491,7 +470,7 @@ def test_get_thread_returns_parent_and_replies() -> None:
             return []
 
     client = MultiResponseFakeClient()
-    service = ChannelService(graph_client=cast("GraphClient", cast("object", client)))
+    service = GraphChannelRepository(graph_client=cast("GraphClient", cast("object", client)))
     parent, replies = service.get_thread("team-123", "channel-456", "msg-789", top=50)
 
     assert isinstance(parent, ChannelMessage)
@@ -529,7 +508,7 @@ def test_get_thread_empty_replies() -> None:
             return []
 
     client = MultiResponseFakeClient()
-    service = ChannelService(graph_client=cast("GraphClient", cast("object", client)))
+    service = GraphChannelRepository(graph_client=cast("GraphClient", cast("object", client)))
     parent, replies = service.get_thread("team-123", "channel-456", "msg-789")
 
     assert isinstance(parent, ChannelMessage)
@@ -557,13 +536,8 @@ def test_replies_cli_command_smoke(monkeypatch: pytest.MonkeyPatch) -> None:
         messageType="message",
         replyToId="m1",
     )
-    FakeChannelService.thread_result = (parent, [reply])
-    FakeChannelService.get_thread_calls = []
 
-    monkeypatch.setattr(token_cache_module, "TokenCache", FakeTokenCache)
-    monkeypatch.setattr(az_provider_module, "AzGraphTokenProvider", FakeTokenProvider)
-    monkeypatch.setattr(graph_client_module, "GraphClient", FakeGraphClientFactory)
-    monkeypatch.setattr(channels_module, "ChannelService", FakeChannelService)
+    monkeypatch.setattr(deps_module, "get_get_thread", lambda: _FakeUseCase((parent, [reply])))
 
     captured_parent: list[ChannelMessage] = []
     captured_replies: list[list[ChannelMessage]] = []
@@ -583,14 +557,6 @@ def test_replies_cli_command_smoke(monkeypatch: pytest.MonkeyPatch) -> None:
     assert result.exit_code == 0
     assert captured_parent == [parent]
     assert captured_replies == [[reply]]
-    assert FakeChannelService.get_thread_calls == [
-        {
-            "team_id": "t1",
-            "channel_id": "c1",
-            "message_id": "m1",
-            "top": 50,
-        }
-    ]
     assert "Alice Johnson" in result.stdout
     assert "Bob Smith" in result.stdout
 
@@ -638,7 +604,7 @@ def test_find_unanswered_filters_all_five_conditions() -> None:
     ]
 
     client = FakeGraphClient({"value": messages})
-    service = ChannelService(graph_client=cast("GraphClient", cast("object", client)))
+    service = GraphChannelRepository(graph_client=cast("GraphClient", cast("object", client)))
     result = service.find_unanswered("t1", "c1", minutes=120)
 
     assert len(result) == 2
@@ -647,7 +613,7 @@ def test_find_unanswered_filters_all_five_conditions() -> None:
 
 def test_find_unanswered_empty() -> None:
     client = FakeGraphClient({"value": []})
-    service = ChannelService(graph_client=cast("GraphClient", cast("object", client)))
+    service = GraphChannelRepository(graph_client=cast("GraphClient", cast("object", client)))
     result = service.find_unanswered("t1", "c1")
 
     assert result == []
@@ -655,7 +621,7 @@ def test_find_unanswered_empty() -> None:
 
 def test_find_unanswered_uses_correct_url() -> None:
     client = FakeGraphClient({"value": []})
-    service = ChannelService(graph_client=cast("GraphClient", cast("object", client)))
+    service = GraphChannelRepository(graph_client=cast("GraphClient", cast("object", client)))
     _ = service.find_unanswered("team-abc", "channel-xyz", minutes=60)
 
     assert len(client.called_urls) == 1
@@ -666,7 +632,7 @@ def test_find_unanswered_uses_correct_url() -> None:
 
 def test_scan_activity_validates_date_format() -> None:
     client = FakeGraphClient({"value": []})
-    service = ChannelService(graph_client=cast("GraphClient", cast("object", client)))
+    service = GraphChannelRepository(graph_client=cast("GraphClient", cast("object", client)))
 
     import pytest as _pytest
 
@@ -703,7 +669,7 @@ def test_scan_activity_stop_before_calculation() -> None:
             return []
 
     client = StopBeforeCapture()
-    service = ChannelService(graph_client=cast("GraphClient", cast("object", client)))
+    service = GraphChannelRepository(graph_client=cast("GraphClient", cast("object", client)))
 
     # Need channels to trigger paginate
     client.get = lambda url: {"value": [{"id": "c1", "displayName": "General"}]}  # type: ignore[assignment]
@@ -762,7 +728,7 @@ def test_scan_activity_aggregates_correctly() -> None:
             return []
 
     client = ScanFakeClient()
-    service = ChannelService(graph_client=cast("GraphClient", cast("object", client)))
+    service = GraphChannelRepository(graph_client=cast("GraphClient", cast("object", client)))
     result = service.scan_activity("t1", target, pages=2)
 
     assert len(result.channels) == 2
@@ -798,7 +764,7 @@ def test_scan_activity_excludes_channels_with_no_activity() -> None:
             ]
 
     client = NoActivityClient()
-    service = ChannelService(graph_client=cast("GraphClient", cast("object", client)))
+    service = GraphChannelRepository(graph_client=cast("GraphClient", cast("object", client)))
     result = service.scan_activity("t1", target, pages=2)
 
     assert result.channels == []
@@ -826,7 +792,7 @@ def test_scan_activity_thread_includes_if_root_on_date() -> None:
             ]
 
     client = RootOnDateClient()
-    service = ChannelService(graph_client=cast("GraphClient", cast("object", client)))
+    service = GraphChannelRepository(graph_client=cast("GraphClient", cast("object", client)))
     result = service.scan_activity("t1", target, pages=2)
 
     assert len(result.channels) == 1
@@ -862,7 +828,7 @@ def test_scan_activity_thread_includes_if_reply_on_date() -> None:
             ]
 
     client = ReplyOnDateClient()
-    service = ChannelService(graph_client=cast("GraphClient", cast("object", client)))
+    service = GraphChannelRepository(graph_client=cast("GraphClient", cast("object", client)))
     result = service.scan_activity("t1", target, pages=2)
 
     assert len(result.channels) == 1

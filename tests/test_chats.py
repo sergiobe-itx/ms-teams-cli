@@ -6,15 +6,12 @@ from typing import TYPE_CHECKING, cast
 
 from typer.testing import CliRunner
 
-import ms_teams_cli.application.chats as chats_module
-import ms_teams_cli.infrastructure.auth.az_provider as az_provider_module
-import ms_teams_cli.infrastructure.auth.token_cache as token_cache_module
-import ms_teams_cli.infrastructure.chat.client as chat_client_module
 import ms_teams_cli.presentation.cli as cli_module
+import ms_teams_cli.presentation.dependencies as deps_module
 import ms_teams_cli.presentation.formatters as formatters_module
-from ms_teams_cli.application.chats import ChatService
 from ms_teams_cli.domain.entities import Chat, ChatType
 from ms_teams_cli.domain.services import classify_chat, is_unread, resolve_display_name
+from ms_teams_cli.infrastructure.chat import ChatServiceRepository
 
 if TYPE_CHECKING:
     import pytest
@@ -122,7 +119,9 @@ def test_list_chats_returns_all_types() -> None:
         }
     )
 
-    chats = ChatService(chat_client=cast("ChatServiceClient", cast("object", client))).list_chats()
+    repo = ChatServiceRepository(chat_client=cast("ChatServiceClient", cast("object", client)))
+
+    chats = repo.list_chats()
 
     assert len(chats) == 3
     assert [chat.chat_type for chat in chats] == [
@@ -145,9 +144,10 @@ def test_list_chats_filters_by_type() -> None:
         }
     )
 
-    chats = ChatService(chat_client=cast("ChatServiceClient", cast("object", client))).list_chats(
-        chat_type=ChatType.GROUP
+    repo = ChatServiceRepository(
+        chat_client=cast("ChatServiceClient", cast("object", client))
     )
+    chats = repo.list_chats(chat_type=ChatType.GROUP)
 
     assert len(chats) == 2
     assert all(chat.chat_type == ChatType.GROUP for chat in chats)
@@ -156,7 +156,9 @@ def test_list_chats_filters_by_type() -> None:
 def test_list_chats_empty() -> None:
     client = FakeChatClient({"conversations": []})
 
-    chats = ChatService(chat_client=cast("ChatServiceClient", cast("object", client))).list_chats()
+    repo = ChatServiceRepository(chat_client=cast("ChatServiceClient", cast("object", client)))
+
+    chats = repo.list_chats()
 
     assert chats == []
 
@@ -164,9 +166,9 @@ def test_list_chats_empty() -> None:
 def test_list_chats_uses_requested_page_size() -> None:
     client = FakeChatClient({"conversations": []}, service_url="https://chat.example.test")
 
-    _ = ChatService(
-        chat_client=cast("ChatServiceClient", cast("object", client))
-    ).list_chats(top=25)
+    repo = ChatServiceRepository(chat_client=cast("ChatServiceClient", cast("object", client)))
+
+    _ = repo.list_chats(top=25)
 
     assert client.called_urls == [
         "https://chat.example.test/v1/users/ME/conversations?view=mychats&pageSize=25"
@@ -189,7 +191,9 @@ def test_list_chats_strips_html_preview() -> None:
         }
     )
 
-    chats = ChatService(chat_client=cast("ChatServiceClient", cast("object", client))).list_chats()
+    repo = ChatServiceRepository(chat_client=cast("ChatServiceClient", cast("object", client)))
+
+    chats = repo.list_chats()
 
     assert chats[0].last_message_preview == "Hello world"
     assert chats[0].last_message_time == "2026-03-28T10:30:00.000Z"
@@ -259,7 +263,7 @@ def test_chats_cli_help() -> None:
 
 
 def test_chats_cli_json_output(monkeypatch: pytest.MonkeyPatch) -> None:
-    FakeChatService.chats = [
+    chats = [
         Chat(
             id="19:g1@thread.v2",
             chat_type=ChatType.GROUP,
@@ -268,12 +272,12 @@ def test_chats_cli_json_output(monkeypatch: pytest.MonkeyPatch) -> None:
             last_message_time="2026-03-28T10:30:00.000Z",
         )
     ]
-    FakeChatService.list_calls = []
 
-    monkeypatch.setattr(token_cache_module, "ChatTokenCache", FakeChatTokenCache)
-    monkeypatch.setattr(az_provider_module, "AzChatTokenProvider", FakeChatTokenProvider)
-    monkeypatch.setattr(chat_client_module, "ChatServiceClient", FakeChatClientFactory)
-    monkeypatch.setattr(chats_module, "ChatService", FakeChatService)
+    class _FakeUseCase:
+        def execute(self, *args: object, **kwargs: object) -> list[Chat]:
+            return chats
+
+    monkeypatch.setattr(deps_module, "get_list_chats", lambda: _FakeUseCase())
 
     captured: list[object] = []
 
@@ -286,16 +290,10 @@ def test_chats_cli_json_output(monkeypatch: pytest.MonkeyPatch) -> None:
     result = runner.invoke(app, ["chats", "--type", "group", "--top", "10", "--json"])
 
     assert result.exit_code == 0
-    assert FakeChatService.list_calls == [{"top": 10, "chat_type": ChatType.GROUP}]
-    assert captured == [FakeChatService.chats]
+    assert captured == [chats]
 
 
 def test_chats_cli_invalid_type(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(token_cache_module, "ChatTokenCache", FakeChatTokenCache)
-    monkeypatch.setattr(az_provider_module, "AzChatTokenProvider", FakeChatTokenProvider)
-    monkeypatch.setattr(chat_client_module, "ChatServiceClient", FakeChatClientFactory)
-    monkeypatch.setattr(chats_module, "ChatService", FakeChatService)
-
     result = runner.invoke(app, ["chats", "--type", "bogus"])
 
     assert result.exit_code == 1
@@ -366,9 +364,9 @@ def test_list_unread_filters_unread() -> None:
         }
     )
 
-    chats = ChatService(
-        chat_client=cast("ChatServiceClient", cast("object", client))
-    ).list_unread()
+    repo = ChatServiceRepository(chat_client=cast("ChatServiceClient", cast("object", client)))
+
+    chats = repo.list_unread()
 
     assert len(chats) == 2
 
@@ -404,9 +402,9 @@ def test_list_unread_filters_by_type() -> None:
         }
     )
 
-    chats = ChatService(
-        chat_client=cast("ChatServiceClient", cast("object", client))
-    ).list_unread(chat_type=ChatType.GROUP)
+    repo = ChatServiceRepository(chat_client=cast("ChatServiceClient", cast("object", client)))
+
+    chats = repo.list_unread(chat_type=ChatType.GROUP)
 
     assert len(chats) == 2
     assert all(chat.chat_type == ChatType.GROUP for chat in chats)
@@ -438,9 +436,9 @@ def test_get_messages_returns_chronological_order() -> None:
         ]
     }
 
-    messages = ChatService(
-        chat_client=cast("ChatServiceClient", cast("object", client))
-    ).get_messages(chat_id=chat_id)
+    repo = ChatServiceRepository(chat_client=cast("ChatServiceClient", cast("object", client)))
+
+    messages = repo.get_messages(chat_id=chat_id)
 
     assert [m.id for m in messages] == ["1", "2", "3", "4"]
 
@@ -469,9 +467,9 @@ def test_get_messages_filters_to_user_types() -> None:
         ]
     }
 
-    messages = ChatService(
-        chat_client=cast("ChatServiceClient", cast("object", client))
-    ).get_messages(chat_id=chat_id)
+    repo = ChatServiceRepository(chat_client=cast("ChatServiceClient", cast("object", client)))
+
+    messages = repo.get_messages(chat_id=chat_id)
 
     assert len(messages) == 6
     assert all(m.message_type in {"Text", "RichText", "RichText/Html"} for m in messages)
@@ -491,9 +489,10 @@ def test_send_message_posts_correct_body() -> None:
     client = FakeChatClient({"conversations": []})
     client.post_response = {"OriginalArrivalTime": "12345"}
 
-    ChatService(
+    repo = ChatServiceRepository(
         chat_client=cast("ChatServiceClient", cast("object", client))
-    ).send_message("19:abc@thread.v2", "Hello world")
+    )
+    repo.send_message("19:abc@thread.v2", "Hello world")
 
     assert len(client.post_calls) == 1
     url, body = client.post_calls[0]
@@ -507,9 +506,10 @@ def test_send_message_html_detection() -> None:
     client = FakeChatClient({"conversations": []})
     client.post_response = {"id": "1"}
 
-    ChatService(
+    repo = ChatServiceRepository(
         chat_client=cast("ChatServiceClient", cast("object", client))
-    ).send_message("19:abc@thread.v2", "<b>Bold</b> text")
+    )
+    repo.send_message("19:abc@thread.v2", "<b>Bold</b> text")
 
     _, body = client.post_calls[0]
     assert body["messagetype"] == "RichText/Html"
@@ -519,9 +519,10 @@ def test_send_message_no_robot_emoji() -> None:
     client = FakeChatClient({"conversations": []})
     client.post_response = {"id": "1"}
 
-    ChatService(
+    repo = ChatServiceRepository(
         chat_client=cast("ChatServiceClient", cast("object", client))
-    ).send_message("19:abc@thread.v2", "Test message")
+    )
+    repo.send_message("19:abc@thread.v2", "Test message")
 
     _, body = client.post_calls[0]
     content = str(body["content"])
@@ -533,9 +534,9 @@ def test_send_message_returns_original_arrival_time() -> None:
     client = FakeChatClient({"conversations": []})
     client.post_response = {"OriginalArrivalTime": "12345"}
 
-    result = ChatService(
-        chat_client=cast("ChatServiceClient", cast("object", client))
-    ).send_message("19:abc@thread.v2", "hi")
+    repo = ChatServiceRepository(chat_client=cast("ChatServiceClient", cast("object", client)))
+
+    result = repo.send_message("19:abc@thread.v2", "hi")
 
     assert result == "12345"
 
@@ -544,9 +545,9 @@ def test_send_message_falls_back_to_id() -> None:
     client = FakeChatClient({"conversations": []})
     client.post_response = {"id": "99"}
 
-    result = ChatService(
-        chat_client=cast("ChatServiceClient", cast("object", client))
-    ).send_message("19:abc@thread.v2", "hi")
+    repo = ChatServiceRepository(chat_client=cast("ChatServiceClient", cast("object", client)))
+
+    result = repo.send_message("19:abc@thread.v2", "hi")
 
     assert result == "99"
 
@@ -561,9 +562,9 @@ def test_resolve_chat_name_finds_match() -> None:
         }
     )
 
-    result = ChatService(
-        chat_client=cast("ChatServiceClient", cast("object", client))
-    ).resolve_chat_name("19:target@thread.v2")
+    repo = ChatServiceRepository(chat_client=cast("ChatServiceClient", cast("object", client)))
+
+    result = repo.resolve_chat_name("19:target@thread.v2")
 
     assert result == "My Chat"
 
@@ -571,9 +572,9 @@ def test_resolve_chat_name_finds_match() -> None:
 def test_resolve_chat_name_fallback_to_id() -> None:
     client = FakeChatClient({"conversations": []})
 
-    result = ChatService(
-        chat_client=cast("ChatServiceClient", cast("object", client))
-    ).resolve_chat_name("19:nonexistent@thread.v2")
+    repo = ChatServiceRepository(chat_client=cast("ChatServiceClient", cast("object", client)))
+
+    result = repo.resolve_chat_name("19:nonexistent@thread.v2")
 
     assert result == "19:nonexistent@thread.v2"
 

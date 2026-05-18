@@ -93,17 +93,11 @@ def teams_command(
     ] = False,
 ) -> None:
     """List all teams the user belongs to."""
-    from ms_teams_cli.application.channels import ChannelService
-    from ms_teams_cli.infrastructure.auth import AzGraphTokenProvider, TokenCache
-    from ms_teams_cli.infrastructure.graph import GraphClient
+    from ms_teams_cli.presentation.dependencies import get_list_teams
     from ms_teams_cli.presentation.formatters import format_json, format_teams_table
 
     try:
-        cache = TokenCache()
-        provider = AzGraphTokenProvider(cache=cache)
-        client = GraphClient(token_provider=provider)
-        service = ChannelService(graph_client=client)
-        teams = service.list_teams()
+        teams = get_list_teams().execute()
     except TeamsError as exc:
         typer.echo(str(exc), err=True)
         raise typer.Exit(code=1) from exc
@@ -124,17 +118,11 @@ def channels_command(
     ] = False,
 ) -> None:
     """List channels in a team."""
-    from ms_teams_cli.application.channels import ChannelService
-    from ms_teams_cli.infrastructure.auth import AzGraphTokenProvider, TokenCache
-    from ms_teams_cli.infrastructure.graph import GraphClient
+    from ms_teams_cli.presentation.dependencies import get_list_channels
     from ms_teams_cli.presentation.formatters import format_channels_table, format_json
 
     try:
-        cache = TokenCache()
-        provider = AzGraphTokenProvider(cache=cache)
-        client = GraphClient(token_provider=provider)
-        service = ChannelService(graph_client=client)
-        channels = service.list_channels(team_id)
+        channels = get_list_channels().execute(team_id)
     except TeamsError as exc:
         typer.echo(str(exc), err=True)
         raise typer.Exit(code=1) from exc
@@ -171,17 +159,11 @@ def messages_command(
     ] = False,
 ) -> None:
     """List messages in a channel."""
-    from ms_teams_cli.application.channels import ChannelService
-    from ms_teams_cli.infrastructure.auth import AzGraphTokenProvider, TokenCache
-    from ms_teams_cli.infrastructure.graph import GraphClient
+    from ms_teams_cli.presentation.dependencies import get_get_messages
     from ms_teams_cli.presentation.formatters import format_json, format_messages_table
 
     try:
-        cache = TokenCache()
-        provider = AzGraphTokenProvider(cache=cache)
-        client = GraphClient(token_provider=provider)
-        service = ChannelService(graph_client=client)
-        messages = service.get_messages(
+        messages = get_get_messages().execute(
             team_id=team_id,
             channel_id=channel_id,
             top=top,
@@ -220,17 +202,11 @@ def replies_command(
     ] = False,
 ) -> None:
     """Show a thread: original post and all replies."""
-    from ms_teams_cli.application.channels import ChannelService
-    from ms_teams_cli.infrastructure.auth import AzGraphTokenProvider, TokenCache
-    from ms_teams_cli.infrastructure.graph import GraphClient
+    from ms_teams_cli.presentation.dependencies import get_get_thread
     from ms_teams_cli.presentation.formatters import format_json, format_thread
 
     try:
-        cache = TokenCache()
-        provider = AzGraphTokenProvider(cache=cache)
-        client = GraphClient(token_provider=provider)
-        service = ChannelService(graph_client=client)
-        parent, replies = service.get_thread(
+        parent, replies = get_get_thread().execute(
             team_id=team_id,
             channel_id=channel_id,
             message_id=thread_id,
@@ -264,17 +240,11 @@ def unanswered_command(
     ] = False,
 ) -> None:
     """List posts with no replies within the last N minutes."""
-    from ms_teams_cli.application.channels import ChannelService
-    from ms_teams_cli.infrastructure.auth import AzGraphTokenProvider, TokenCache
-    from ms_teams_cli.infrastructure.graph import GraphClient
+    from ms_teams_cli.presentation.dependencies import get_find_unanswered
     from ms_teams_cli.presentation.formatters import format_json, format_unanswered_table
 
     try:
-        cache = TokenCache()
-        provider = AzGraphTokenProvider(cache=cache)
-        client = GraphClient(token_provider=provider)
-        service = ChannelService(graph_client=client)
-        messages = service.find_unanswered(
+        messages = get_find_unanswered().execute(
             team_id=team_id,
             channel_id=channel_id,
             minutes=minutes,
@@ -311,17 +281,11 @@ def scan_command(
     ] = False,
 ) -> None:
     """Scan all channels of a team for activity on a specific date."""
-    from ms_teams_cli.application.channels import ChannelService
-    from ms_teams_cli.infrastructure.auth import AzGraphTokenProvider, TokenCache
-    from ms_teams_cli.infrastructure.graph import GraphClient
+    from ms_teams_cli.presentation.dependencies import get_scan_activity
     from ms_teams_cli.presentation.formatters import format_json, format_scan_result
 
     try:
-        cache = TokenCache()
-        provider = AzGraphTokenProvider(cache=cache)
-        client = GraphClient(token_provider=provider)
-        service = ChannelService(graph_client=client)
-        result = service.scan_activity(
+        result = get_scan_activity().execute(
             team_id=team_id,
             date=date,
             pages=pages,
@@ -428,10 +392,8 @@ def chats_command(
     ] = False,
 ) -> None:
     """List chats from the Teams chat service."""
-    from ms_teams_cli.application.chats import ChatService
     from ms_teams_cli.domain.entities import ChatType
-    from ms_teams_cli.infrastructure.auth import AzChatTokenProvider, ChatTokenCache
-    from ms_teams_cli.infrastructure.chat import ChatServiceClient
+    from ms_teams_cli.presentation.dependencies import get_list_chats
     from ms_teams_cli.presentation.formatters import format_chats_table, format_json
 
     resolved_type: ChatType | None = None
@@ -443,11 +405,7 @@ def chats_command(
             raise typer.Exit(code=1) from exc
 
     try:
-        cache = ChatTokenCache()
-        provider = AzChatTokenProvider(cache=cache)
-        client = ChatServiceClient(token_provider=provider)
-        service = ChatService(chat_client=client)
-        chats = service.list_chats(top=top, chat_type=resolved_type)
+        chats = get_list_chats().execute(top=top, chat_type=resolved_type)
     except TeamsError as exc:
         typer.echo(str(exc), err=True)
         raise typer.Exit(code=1) from exc
@@ -471,10 +429,8 @@ def unread_command(
     ] = False,
 ) -> None:
     """List chats with unread messages."""
-    from ms_teams_cli.application.chats import ChatService
     from ms_teams_cli.domain.entities import ChatType
-    from ms_teams_cli.infrastructure.auth import AzChatTokenProvider, ChatTokenCache
-    from ms_teams_cli.infrastructure.chat import ChatServiceClient
+    from ms_teams_cli.presentation.dependencies import get_list_unread
     from ms_teams_cli.presentation.formatters import format_json, format_unread_table
 
     resolved_type: ChatType | None = None
@@ -486,11 +442,7 @@ def unread_command(
             raise typer.Exit(code=1) from exc
 
     try:
-        cache = ChatTokenCache()
-        provider = AzChatTokenProvider(cache=cache)
-        client = ChatServiceClient(token_provider=provider)
-        service = ChatService(chat_client=client)
-        chats = service.list_unread(chat_type=resolved_type)
+        chats = get_list_unread().execute(chat_type=resolved_type)
     except TeamsError as exc:
         typer.echo(str(exc), err=True)
         raise typer.Exit(code=1) from exc
@@ -518,17 +470,11 @@ def chat_messages_command(
     ] = False,
 ) -> None:
     """Show messages from a chat conversation."""
-    from ms_teams_cli.application.chats import ChatService
-    from ms_teams_cli.infrastructure.auth import AzChatTokenProvider, ChatTokenCache
-    from ms_teams_cli.infrastructure.chat import ChatServiceClient
+    from ms_teams_cli.presentation.dependencies import get_chat_messages
     from ms_teams_cli.presentation.formatters import format_chat_messages_table, format_json
 
     try:
-        cache = ChatTokenCache()
-        provider = AzChatTokenProvider(cache=cache)
-        client = ChatServiceClient(token_provider=provider)
-        service = ChatService(chat_client=client)
-        messages = service.get_messages(chat_id=chat_id, top=top)
+        messages = get_chat_messages().execute(chat_id=chat_id, top=top)
     except TeamsError as exc:
         typer.echo(str(exc), err=True)
         raise typer.Exit(code=1) from exc
@@ -547,16 +493,10 @@ def send_message_command(
     yes: Annotated[bool, typer.Option("--yes", help="Skip confirmation prompt")] = False,  # pyright: ignore[reportUnknownMemberType]
 ) -> None:
     """Send a message to a chat conversation."""
-    from ms_teams_cli.application.chats import ChatService
-    from ms_teams_cli.infrastructure.auth import AzChatTokenProvider, ChatTokenCache
-    from ms_teams_cli.infrastructure.chat import ChatServiceClient
+    from ms_teams_cli.presentation.dependencies import get_resolve_chat_name, get_send_message
 
     try:
-        cache = ChatTokenCache()
-        provider = AzChatTokenProvider(cache=cache)
-        client = ChatServiceClient(token_provider=provider)
-        service = ChatService(chat_client=client)
-        chat_name = service.resolve_chat_name(chat_id)
+        chat_name = get_resolve_chat_name().execute(chat_id)
     except TeamsError as exc:
         typer.echo(str(exc), err=True)
         raise typer.Exit(code=1) from exc
@@ -583,7 +523,7 @@ def send_message_command(
         return
 
     try:
-        msg_id = service.send_message(chat_id, message)
+        msg_id = get_send_message().execute(chat_id, message)
         typer.echo(f"Message sent. (id: {msg_id})")
     except TeamsError as exc:
         typer.echo(str(exc), err=True)

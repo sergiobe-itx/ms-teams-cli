@@ -3,8 +3,6 @@ from __future__ import annotations
 
 from loguru import logger
 
-from ms_teams_cli.application.channels import ChannelService
-from ms_teams_cli.application.chats import ChatService
 from ms_teams_cli.domain.entities import (
     Channel,
     ChannelMessage,
@@ -14,8 +12,13 @@ from ms_teams_cli.domain.entities import (
     Team,
 )
 from ms_teams_cli.domain.exceptions import APIError, AuthenticationError, TeamsError
+from ms_teams_cli.infrastructure.chat import ChatServiceRepository
+from ms_teams_cli.infrastructure.graph import GraphChannelRepository
 
 __version__ = "0.1.0"
+
+ChannelService = GraphChannelRepository
+ChatService = ChatServiceRepository
 
 logger.disable("ms_teams_cli")
 
