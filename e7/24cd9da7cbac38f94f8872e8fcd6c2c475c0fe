@@ -1,0 +1,59 @@
+src/ms_teams_cli/domain/ports/__init__.py
+  s_3a9df1874424f1::t_f3eaf54914162e 7,11
+src/ms_teams_cli/domain/ports/token_provider.py
+  s_6510ecb3ea4f34::t_1945082acb1fd4 16
+  s_3a9df1874424f1::t_17eae1c2441163 17-24
+src/ms_teams_cli/infrastructure/auth/msal_provider.py
+  s_3a9df1874424f1::t_163898d339b590 67-80
+tests/infrastructure/auth/test_msal_provider.py
+  s_3a9df1874424f1::t_771e1384c8eb68 96-118
+src/ms_teams_cli/infrastructure/auth/chained_provider.py
+  s_3a9df1874424f1::t_baa95bd3c90f58 43
+  s_3a9df1874424f1::t_508f5e7987a78f 9
+  s_3a9df1874424f1::t_06239c8eea522e 15
+  s_f03af850dd6f2e::t_b160d676e5afa5 44
+src/ms_teams_cli/infrastructure/graph/client.py
+  s_301801f20be9b4::t_57cd5df4e3283e 14
+  s_3a9df1874424f1::t_ceb156d38135b5 4
+  s_3a9df1874424f1::t_43953b49ff9191 13
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.9",
+  "base_commit_sha": "e724cd9da7cbac38f94f8872e8fcd6c2c475c0fe",
+  "prompts": {},
+  "sessions": {
+    "s_301801f20be9b4": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_1c58c9854ffeGoQPNvXTGPgsed",
+        "model": "unknown"
+      },
+      "human_author": "Sergio Bugallo Enjamio <sergiobe@inditex.com>"
+    },
+    "s_3a9df1874424f1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_1c4fdd22cffe7wZkGR0viDVod8",
+        "model": "unknown"
+      },
+      "human_author": "Sergio Bugallo Enjamio <sergiobe@inditex.com>"
+    },
+    "s_6510ecb3ea4f34": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_1c592f6fdffe6JwV1fzAkf3sa6",
+        "model": "unknown"
+      },
+      "human_author": "Sergio Bugallo Enjamio <sergiobe@inditex.com>"
+    },
+    "s_f03af850dd6f2e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_1c6351f7affe3SQB00GcfVLJVr",
+        "model": "unknown"
+      },
+      "human_author": "Sergio Bugallo Enjamio <sergiobe@inditex.com>"
+    }
+  }
+}
