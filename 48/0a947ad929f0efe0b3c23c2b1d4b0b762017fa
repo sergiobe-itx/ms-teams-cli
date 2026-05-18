@@ -1,0 +1,22 @@
+tests/infrastructure/graph/test_graph_client_post.py
+  s_3737eaedbad8bb::t_ab95ca67308b54 1-85
+src/ms_teams_cli/infrastructure/graph/client.py
+  s_3737eaedbad8bb::t_ae80c3a95486b3 86-90,92,95-96
+  s_3737eaedbad8bb::t_7748da631f3885 83-85,91,93-94,97-113
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.9",
+  "base_commit_sha": "480a947ad929f0efe0b3c23c2b1d4b0b762017fa",
+  "prompts": {},
+  "sessions": {
+    "s_3737eaedbad8bb": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_1c49e15aaffe7Gq8EWPHzK5WpW",
+        "model": "unknown"
+      },
+      "human_author": "Sergio Bugallo Enjamio <sergiobe@inditex.com>"
+    }
+  }
+}
