@@ -1,7 +1,11 @@
 """CLI entry point for ms-teams."""
 from __future__ import annotations
 
+from typing import Annotated
+
 import typer
+
+from ms_teams_cli.domain.exceptions import TeamsError
 
 app = typer.Typer(
     name="ms-teams",
@@ -16,6 +20,37 @@ def version() -> None:
     from ms_teams_cli import __version__
 
     typer.echo(f"ms-teams-cli {__version__}")
+
+
+@app.command("teams")
+def teams_command(
+    json_output: Annotated[
+        bool,
+        typer.Option("--json", help="Output as JSON"),  # pyright: ignore[reportUnknownMemberType]
+    ] = False,
+) -> None:
+    """List all teams the user belongs to."""
+    from ms_teams_cli.application.channels import ChannelService
+    from ms_teams_cli.infrastructure.az_provider import AzGraphTokenProvider
+    from ms_teams_cli.infrastructure.graph_client import GraphClient
+    from ms_teams_cli.infrastructure.token_cache import TokenCache
+    from ms_teams_cli.presentation.formatters import format_json, format_teams_table
+
+    try:
+        cache = TokenCache()
+        provider = AzGraphTokenProvider(cache=cache)
+        client = GraphClient(token_provider=provider)
+        service = ChannelService(graph_client=client)
+        teams = service.list_teams()
+    except TeamsError as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(code=1) from exc
+
+    if json_output:
+        format_json(teams)
+        return
+
+    format_teams_table(teams)
 
 
 if __name__ == "__main__":

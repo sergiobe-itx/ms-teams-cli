@@ -1,0 +1,144 @@
+"""Tests for channel application service and teams CLI."""
+from __future__ import annotations
+
+import json
+from typing import TYPE_CHECKING, cast
+
+from typer.testing import CliRunner
+
+import ms_teams_cli.application.channels as channels_module
+import ms_teams_cli.infrastructure.az_provider as az_provider_module
+import ms_teams_cli.infrastructure.graph_client as graph_client_module
+import ms_teams_cli.infrastructure.token_cache as token_cache_module
+import ms_teams_cli.presentation.cli as cli_module
+import ms_teams_cli.presentation.formatters as formatters_module
+from ms_teams_cli.application.channels import ChannelService
+from ms_teams_cli.domain.models import Team
+
+if TYPE_CHECKING:
+    import pytest
+
+    from ms_teams_cli.infrastructure.graph_client import GraphClient
+
+
+app = cli_module.app
+runner = CliRunner()
+
+
+class FakeGraphClient:
+    def __init__(self, payload: dict[str, object]) -> None:
+        self._payload: dict[str, object] = payload
+
+    def get(self, _url: str) -> dict[str, object]:
+        return self._payload
+
+
+class FakeTokenCache:
+    def __init__(self) -> None:
+        pass
+
+
+class FakeTokenProvider:
+    def __init__(self, cache: FakeTokenCache | None = None) -> None:
+        self.cache: FakeTokenCache | None = cache
+
+
+class FakeGraphClientFactory:
+    def __init__(self, token_provider: FakeTokenProvider) -> None:
+        self.token_provider: FakeTokenProvider = token_provider
+
+
+class FakeChannelService:
+    teams: list[Team] = []
+
+    def __init__(self, graph_client: FakeGraphClientFactory) -> None:
+        self.graph_client: FakeGraphClientFactory = graph_client
+
+    def list_teams(self) -> list[Team]:
+        return self.teams
+
+
+def test_list_teams_returns_team_objects() -> None:
+    client = FakeGraphClient(
+        {
+            "value": [
+                {"id": "t1", "displayName": "Team A", "description": "desc"},
+                {"id": "t2", "displayName": "Team B", "description": None},
+            ]
+        }
+    )
+
+    teams = ChannelService(graph_client=cast("GraphClient", cast("object", client))).list_teams()
+
+    assert teams == [
+        Team(id="t1", displayName="Team A", description="desc"),
+        Team(id="t2", displayName="Team B", description=None),
+    ]
+
+
+def test_list_teams_empty() -> None:
+    client = FakeGraphClient({"value": []})
+
+    teams = ChannelService(graph_client=cast("GraphClient", cast("object", client))).list_teams()
+
+    assert teams == []
+
+
+def test_teams_cli_command_smoke(monkeypatch: pytest.MonkeyPatch) -> None:
+    teams = [
+        Team(id="t1", displayName="Team A", description="desc"),
+        Team(id="t2", displayName="Team B", description=None),
+    ]
+    FakeChannelService.teams = teams
+
+    monkeypatch.setattr(token_cache_module, "TokenCache", FakeTokenCache)
+    monkeypatch.setattr(az_provider_module, "AzGraphTokenProvider", FakeTokenProvider)
+    monkeypatch.setattr(graph_client_module, "GraphClient", FakeGraphClientFactory)
+    monkeypatch.setattr(channels_module, "ChannelService", FakeChannelService)
+
+    captured: list[list[Team]] = []
+
+    def fake_formatter(items: list[Team]) -> None:
+        captured.append(items)
+        for item in items:
+            print(item.display_name)
+        print(f"{len(items)} teams.")
+
+    monkeypatch.setattr(formatters_module, "format_teams_table", fake_formatter)
+
+    result = runner.invoke(app, ["teams"])
+
+    assert result.exit_code == 0
+    assert captured == [teams]
+    assert "Team A" in result.stdout
+    assert "Team B" in result.stdout
+    assert "2 teams." in result.stdout
+
+
+def test_teams_cli_json_output(monkeypatch: pytest.MonkeyPatch) -> None:
+    teams = [Team(id="t1", displayName="Team A", description="desc")]
+    FakeChannelService.teams = teams
+
+    monkeypatch.setattr(token_cache_module, "TokenCache", FakeTokenCache)
+    monkeypatch.setattr(az_provider_module, "AzGraphTokenProvider", FakeTokenProvider)
+    monkeypatch.setattr(graph_client_module, "GraphClient", FakeGraphClientFactory)
+    monkeypatch.setattr(channels_module, "ChannelService", FakeChannelService)
+
+    captured: list[object] = []
+
+    def fake_json_formatter(data: object) -> None:
+        captured.append(data)
+        item = cast("list[Team]", data)[0]
+        print(json.dumps(item.model_dump(by_alias=False)))
+
+    monkeypatch.setattr(formatters_module, "format_json", fake_json_formatter)
+
+    result = runner.invoke(app, ["teams", "--json"])
+
+    assert result.exit_code == 0
+    assert captured == [teams]
+    assert json.loads(result.stdout) == {
+        "id": "t1",
+        "display_name": "Team A",
+        "description": "desc",
+    }
