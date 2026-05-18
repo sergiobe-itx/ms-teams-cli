@@ -1,0 +1,19 @@
+src/ms_teams_cli/presentation/cli.py
+  s_009def10a08f89::t_2dca07b06756fb 379-406
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.9",
+  "base_commit_sha": "cccf1e3572a3d3bdfed003cf792a0332f8c6d6e8",
+  "prompts": {},
+  "sessions": {
+    "s_009def10a08f89": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_1c5068e40ffeLobrVpVsW1JHQ1",
+        "model": "unknown"
+      },
+      "human_author": "Sergio Bugallo Enjamio <sergiobe@inditex.com>"
+    }
+  }
+}
