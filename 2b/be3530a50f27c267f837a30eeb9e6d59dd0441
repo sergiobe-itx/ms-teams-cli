@@ -1,0 +1,42 @@
+pyproject.toml
+  s_f03af850dd6f2e::t_805c207198a87a 5-7,9-10
+  s_33bb91c5e9a2cb::t_7032d80566e10e 8,11-56
+  s_33bb91c5e9a2cb::t_ccae3f9b1a6bfb 1-4
+src/ms_teams_cli/domain/models.py
+  s_33bb91c5e9a2cb::t_3c6ebad888e986 1-2
+tests/conftest.py
+  s_33bb91c5e9a2cb::t_8f24a07492131a 1-2
+src/ms_teams_cli/__init__.py
+  s_33bb91c5e9a2cb::t_2f739ca812832d 1-5
+src/ms_teams_cli/presentation/cli.py
+  s_33bb91c5e9a2cb::t_c874cf6b8bc7f7 1-12,21-22
+  s_33bb91c5e9a2cb::t_b0c240750e0d59 13-20
+src/ms_teams_cli/domain/exceptions.py
+  s_33bb91c5e9a2cb::t_62cecb9d47394d 1-2
+tests/test_smoke.py
+  s_33bb91c5e9a2cb::t_8169b1b3cff59b 1-8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.9",
+  "base_commit_sha": "2bbe3530a50f27c267f837a30eeb9e6d59dd0441",
+  "prompts": {},
+  "sessions": {
+    "s_33bb91c5e9a2cb": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_1c60f2b92ffeHDhLjBdd3PBgeF",
+        "model": "unknown"
+      },
+      "human_author": "Sergio Bugallo Enjamio <sergiobe@inditex.com>"
+    },
+    "s_f03af850dd6f2e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_1c6351f7affe3SQB00GcfVLJVr",
+        "model": "unknown"
+      },
+      "human_author": "Sergio Bugallo Enjamio <sergiobe@inditex.com>"
+    }
+  }
+}
