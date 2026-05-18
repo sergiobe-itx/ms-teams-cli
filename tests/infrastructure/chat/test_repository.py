@@ -1,26 +1,14 @@
-"""Tests for chat application service, classifier, display, and CLI."""
+"""Tests for ChatServiceRepository adapter."""
 from __future__ import annotations
 
-import json
 from typing import TYPE_CHECKING, cast
 
-from typer.testing import CliRunner
-
-import ms_teams_cli.presentation.cli as cli_module
-import ms_teams_cli.presentation.dependencies as deps_module
-import ms_teams_cli.presentation.formatters as formatters_module
-from ms_teams_cli.domain.entities import Chat, ChatType
+from ms_teams_cli.domain.entities import ChatType
 from ms_teams_cli.domain.services import classify_chat, is_unread, resolve_display_name
 from ms_teams_cli.infrastructure.chat import ChatServiceRepository
 
 if TYPE_CHECKING:
-    import pytest
-
     from ms_teams_cli.infrastructure.chat import ChatServiceClient
-
-
-app = cli_module.app
-runner = CliRunner()
 
 
 class FakeChatClient:
@@ -46,36 +34,6 @@ class FakeChatClient:
     def post(self, url: str, body: dict[str, object]) -> dict[str, object]:
         self.post_calls.append((url, body))
         return self.post_response
-
-
-class FakeChatTokenCache:
-    def __init__(self) -> None:
-        pass
-
-
-class FakeChatTokenProvider:
-    def __init__(self, cache: FakeChatTokenCache | None = None) -> None:
-        self.cache: FakeChatTokenCache | None = cache
-
-    def get_token(self) -> tuple[str, str]:
-        return "token123", "https://chat.example.test"
-
-
-class FakeChatClientFactory:
-    def __init__(self, token_provider: FakeChatTokenProvider) -> None:
-        self.token_provider: FakeChatTokenProvider = token_provider
-
-
-class FakeChatService:
-    chats: list[Chat] = []
-    list_calls: list[dict[str, object]] = []
-
-    def __init__(self, chat_client: FakeChatClientFactory) -> None:
-        self.chat_client: FakeChatClientFactory = chat_client
-
-    def list_chats(self, top: int = 50, chat_type: ChatType | None = None) -> list[Chat]:
-        self.list_calls.append({"top": top, "chat_type": chat_type})
-        return self.chats
 
 
 def test_classify_chat_meeting() -> None:
@@ -257,49 +215,6 @@ def test_resolve_display_name_falls_back_to_id() -> None:
     assert result == "19:abcdefghijklmnopqrstuvwxyz0123456789@t"[:40]
 
 
-def test_chats_cli_help() -> None:
-    result = runner.invoke(app, ["chats", "--help"])
-    assert result.exit_code == 0
-
-
-def test_chats_cli_json_output(monkeypatch: pytest.MonkeyPatch) -> None:
-    chats = [
-        Chat(
-            id="19:g1@thread.v2",
-            chat_type=ChatType.GROUP,
-            display_name="Architecture",
-            last_message_preview="Hello",
-            last_message_time="2026-03-28T10:30:00.000Z",
-        )
-    ]
-
-    class _FakeUseCase:
-        def execute(self, *args: object, **kwargs: object) -> list[Chat]:
-            return chats
-
-    monkeypatch.setattr(deps_module, "get_list_chats", lambda: _FakeUseCase())
-
-    captured: list[object] = []
-
-    def fake_json_formatter(data: object) -> None:
-        captured.append(data)
-        print(json.dumps([item.model_dump(by_alias=False) for item in cast("list[Chat]", data)]))
-
-    monkeypatch.setattr(formatters_module, "format_json", fake_json_formatter)
-
-    result = runner.invoke(app, ["chats", "--type", "group", "--top", "10", "--json"])
-
-    assert result.exit_code == 0
-    assert captured == [chats]
-
-
-def test_chats_cli_invalid_type(monkeypatch: pytest.MonkeyPatch) -> None:
-    result = runner.invoke(app, ["chats", "--type", "bogus"])
-
-    assert result.exit_code == 1
-    assert "Invalid chat type: bogus" in result.stderr
-
-
 def test_is_unread_newer_id_than_horizon() -> None:
     conv: dict[str, object] = {
         "lastMessage": {"id": "200"},
@@ -475,16 +390,6 @@ def test_get_messages_filters_to_user_types() -> None:
     assert all(m.message_type in {"Text", "RichText", "RichText/Html"} for m in messages)
 
 
-def test_chat_messages_cli_help() -> None:
-    result = runner.invoke(app, ["chat-messages", "--help"])
-    assert result.exit_code == 0
-
-
-def test_unread_cli_help() -> None:
-    result = runner.invoke(app, ["unread", "--help"])
-    assert result.exit_code == 0
-
-
 def test_send_message_posts_correct_body() -> None:
     client = FakeChatClient({"conversations": []})
     client.post_response = {"OriginalArrivalTime": "12345"}
@@ -577,8 +482,3 @@ def test_resolve_chat_name_fallback_to_id() -> None:
     result = repo.resolve_chat_name("19:nonexistent@thread.v2")
 
     assert result == "19:nonexistent@thread.v2"
-
-
-def test_send_message_cli_help() -> None:
-    result = runner.invoke(app, ["send-message", "--help"])
-    assert result.exit_code == 0

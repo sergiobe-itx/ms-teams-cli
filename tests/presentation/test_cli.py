@@ -1,9 +1,9 @@
-"""CLI polish and integration tests."""
+"""CLI presentation tests — commands, error handling, and smoke tests."""
 from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Final, override
+from typing import Final, cast, override
 
 import pytest
 import typer
@@ -18,6 +18,7 @@ import ms_teams_cli.infrastructure.chat as chat_module
 import ms_teams_cli.infrastructure.chat.client as chat_client_module
 import ms_teams_cli.presentation.cli as cli_module
 import ms_teams_cli.presentation.dependencies as deps_module
+import ms_teams_cli.presentation.formatters as formatters_module
 from ms_teams_cli import (
     APIError,
     AuthenticationError,
@@ -31,6 +32,7 @@ from ms_teams_cli import (
     Team,
     TeamsError,
     __all__,
+    __version__,
 )
 from ms_teams_cli.domain.entities import ChatType, MessageAuthor, MessageBody
 
@@ -66,98 +68,13 @@ class _FakeUseCase:
     def __init__(self, return_value: object = None, side_effect: Exception | None = None) -> None:
         self._return_value = return_value
         self._side_effect = side_effect
+        self.calls: list[dict[str, object]] = []
 
     def execute(self, *args: object, **kwargs: object) -> object:
-        del args, kwargs
+        self.calls.append({"args": args, "kwargs": kwargs})
         if self._side_effect is not None:
             raise self._side_effect
         return self._return_value
-
-
-def _empty_chats(self: object, top: int = 50, chat_type: object = None) -> list[Chat]:
-    del self, top, chat_type
-    return []
-
-
-def _empty_teams(self: object) -> list[Team]:
-    del self
-    return []
-
-
-def _empty_channels(self: object, team_id: str) -> list[Channel]:
-    del self, team_id
-    return []
-
-
-def _empty_channel_messages(
-    self: object,
-    team_id: str,
-    channel_id: str,
-    top: int = 20,
-    pages: int = 1,
-    since: str | None = None,
-) -> list[ChannelMessage]:
-    del self, team_id, channel_id, top, pages, since
-    return []
-
-
-def _empty_thread(
-    self: object,
-    team_id: str,
-    channel_id: str,
-    message_id: str,
-    top: int = 50,
-) -> tuple[ChannelMessage, list[ChannelMessage]]:
-    del self, team_id, channel_id, message_id, top
-    return _sample_channel_message(), []
-
-
-def _empty_unanswered(
-    self: object,
-    team_id: str,
-    channel_id: str,
-    minutes: int = 120,
-) -> list[ChannelMessage]:
-    del self, team_id, channel_id, minutes
-    return []
-
-
-def _empty_scan_result(
-    self: object,
-    team_id: str,
-    date: str,
-    pages: int = 2,
-    top: int = 50,
-) -> ScanResult:
-    del self, team_id, pages, top
-    return ScanResult(date=date, channels=[])
-
-
-def _empty_unread(
-    self: object,
-    chat_type: ChatType | None = None,
-) -> list[Chat]:
-    del self, chat_type
-    return []
-
-
-def _empty_chat_messages(
-    self: object,
-    chat_id: str,
-    top: int = 30,
-) -> list[ChatMessage]:
-    del self, chat_id, top
-    return []
-
-
-def _architecture_chat_name(self: object, chat_id: str) -> str:
-    del self, chat_id
-    return ARCHITECTURE_NAME
-
-
-def _sent_message_id(self: object, chat_id: str, message: str) -> str:
-    del self, chat_id, message
-    return "msg-123"
 
 
 class FakeTokenCache:
@@ -226,6 +143,13 @@ def _sample_channel_message(message_id: str = "m1") -> ChannelMessage:
     )
 
 
+# === Smoke / version tests ===
+
+
+def test_package_version() -> None:
+    assert __version__ == "0.1.0"
+
+
 def test_help_lists_all_commands() -> None:
     result = runner.invoke(app, ["--help"])
 
@@ -280,6 +204,9 @@ def test_verbose_flag_is_accepted() -> None:
 
     assert result.exit_code == 0
     assert "ms-teams-cli 0.1.0" in result.output
+
+
+# === Callback / error handler tests ===
 
 
 def test_main_callback_disables_logger(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -373,6 +300,9 @@ def test_global_error_handler_reraises_non_interrupt_system_exit(
         _ = group.main([])
 
 
+# === Package public API ===
+
+
 def test_package_public_api_exports() -> None:
     expected = {
         "__version__",
@@ -410,25 +340,270 @@ def test_cli_main_guard_is_last_line() -> None:
     assert content[-1] == "    app()"
 
 
-def test_parse_url_requires_argument_when_not_interactive(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr("sys.stdin.isatty", lambda: False)
+# === Channel CLI commands ===
 
-    result = runner.invoke(app, ["parse-url"])
+
+def test_teams_cli_command_smoke(monkeypatch: pytest.MonkeyPatch) -> None:
+    teams = [
+        Team(id="t1", displayName="Team A", description="desc"),
+        Team(id="t2", displayName="Team B", description=None),
+    ]
+
+    monkeypatch.setattr(deps_module, "get_list_teams", lambda: _FakeUseCase(teams))
+
+    captured: list[list[Team]] = []
+
+    def fake_formatter(items: list[Team]) -> None:
+        captured.append(items)
+        for item in items:
+            print(item.display_name)
+        print(f"{len(items)} teams.")
+
+    monkeypatch.setattr(formatters_module, "format_teams_table", fake_formatter)
+
+    result = runner.invoke(app, ["teams"])
+
+    assert result.exit_code == 0
+    assert captured == [teams]
+    assert "Team A" in result.stdout
+    assert "Team B" in result.stdout
+    assert "2 teams." in result.stdout
+
+
+def test_teams_cli_json_output(monkeypatch: pytest.MonkeyPatch) -> None:
+    teams = [Team(id="t1", displayName="Team A", description="desc")]
+
+    monkeypatch.setattr(deps_module, "get_list_teams", lambda: _FakeUseCase(teams))
+
+    captured: list[object] = []
+
+    def fake_json_formatter(data: object) -> None:
+        captured.append(data)
+        item = cast("list[Team]", data)[0]
+        print(json.dumps(item.model_dump(by_alias=False)))
+
+    monkeypatch.setattr(formatters_module, "format_json", fake_json_formatter)
+
+    result = runner.invoke(app, ["teams", "--json"])
+
+    assert result.exit_code == 0
+    assert captured == [teams]
+    assert json.loads(result.stdout) == {
+        "id": "t1",
+        "display_name": "Team A",
+        "description": "desc",
+    }
+
+
+def test_channels_cli_command_smoke(monkeypatch: pytest.MonkeyPatch) -> None:
+    channels = [
+        Channel(id="c1", displayName="General", description="main"),
+        Channel(id="c2", displayName="Random", description=None),
+    ]
+
+    monkeypatch.setattr(deps_module, "get_list_channels", lambda: _FakeUseCase(channels))
+
+    captured: list[list[Channel]] = []
+
+    def fake_formatter(items: list[Channel]) -> None:
+        captured.append(items)
+        for item in items:
+            print(item.display_name)
+        print(f"{len(items)} channels.")
+
+    monkeypatch.setattr(formatters_module, "format_channels_table", fake_formatter)
+
+    result = runner.invoke(app, ["channels", "--team", "t1"])
+
+    assert result.exit_code == 0
+    assert captured == [channels]
+    assert "General" in result.stdout
+    assert "Random" in result.stdout
+    assert "2 channels." in result.stdout
+
+
+def test_channels_cli_json_output(monkeypatch: pytest.MonkeyPatch) -> None:
+    channels = [Channel(id="c1", displayName="General", description="main")]
+
+    monkeypatch.setattr(deps_module, "get_list_channels", lambda: _FakeUseCase(channels))
+
+    captured: list[object] = []
+
+    def fake_json_formatter(data: object) -> None:
+        captured.append(data)
+        item = cast("list[Channel]", data)[0]
+        print(json.dumps(item.model_dump(by_alias=False)))
+
+    monkeypatch.setattr(formatters_module, "format_json", fake_json_formatter)
+
+    result = runner.invoke(app, ["channels", "--team", "t1", "--json"])
+
+    assert result.exit_code == 0
+    assert captured == [channels]
+    assert json.loads(result.stdout) == {
+        "id": "c1",
+        "display_name": "General",
+        "description": "main",
+    }
+
+
+def test_messages_cli_command_smoke(monkeypatch: pytest.MonkeyPatch) -> None:
+    messages = [
+        ChannelMessage(
+            id="m1",
+            createdDateTime="2024-01-15T14:30:00Z",
+            author=MessageAuthor(displayName="Alice Johnson"),
+            body=MessageBody(content="<p>Hello</p>", contentType="html"),
+            replyCount=3,
+            messageType="message",
+            replyToId=None,
+        ),
+        ChannelMessage(
+            id="m2",
+            createdDateTime="2024-01-15T14:31:00Z",
+            author=MessageAuthor(displayName="Bob Smith"),
+            body=MessageBody(content="<p>Hi</p>", contentType="html"),
+            replyCount=0,
+            messageType="message",
+            replyToId=None,
+        ),
+    ]
+
+    monkeypatch.setattr(deps_module, "get_get_messages", lambda: _FakeUseCase(messages))
+
+    captured: list[list[ChannelMessage]] = []
+
+    def fake_formatter(items: list[ChannelMessage]) -> None:
+        captured.append(items)
+        for item in items:
+            print(item.author.display_name)
+        print(f"{len(items)} messages.")
+
+    monkeypatch.setattr(formatters_module, "format_messages_table", fake_formatter)
+
+    result = runner.invoke(app, ["messages", "--team", "t1", "--channel", "c1"])
+
+    assert result.exit_code == 0
+    assert captured == [messages]
+    assert "Alice Johnson" in result.stdout
+    assert "Bob Smith" in result.stdout
+    assert "2 messages." in result.stdout
+
+
+def test_replies_cli_command_smoke(monkeypatch: pytest.MonkeyPatch) -> None:
+    parent = ChannelMessage(
+        id="m1",
+        createdDateTime="2024-01-15T14:30:00Z",
+        author=MessageAuthor(displayName="Alice Johnson"),
+        body=MessageBody(content="<p>Original post</p>", contentType="html"),
+        replyCount=1,
+        messageType="message",
+        replyToId=None,
+    )
+    reply = ChannelMessage(
+        id="r1",
+        createdDateTime="2024-01-15T14:31:00Z",
+        author=MessageAuthor(displayName="Bob Smith"),
+        body=MessageBody(content="<p>Reply</p>", contentType="html"),
+        replyCount=0,
+        messageType="message",
+        replyToId="m1",
+    )
+
+    monkeypatch.setattr(deps_module, "get_get_thread", lambda: _FakeUseCase((parent, [reply])))
+
+    captured_parent: list[ChannelMessage] = []
+    captured_replies: list[list[ChannelMessage]] = []
+
+    def fake_formatter(p: ChannelMessage, r: list[ChannelMessage]) -> None:
+        captured_parent.append(p)
+        captured_replies.append(r)
+        print(f"From : {p.author.display_name}")
+        print(f"Replies ({len(r)} total)")
+        for reply_msg in r:
+            print(f"  {reply_msg.author.display_name}")
+
+    monkeypatch.setattr(formatters_module, "format_thread", fake_formatter)
+
+    result = runner.invoke(app, ["replies", "--team", "t1", "--channel", "c1", "--thread", "m1"])
+
+    assert result.exit_code == 0
+    assert captured_parent == [parent]
+    assert captured_replies == [[reply]]
+    assert "Alice Johnson" in result.stdout
+    assert "Bob Smith" in result.stdout
+
+
+def test_scan_unanswered_cli_help() -> None:
+    result = runner.invoke(app, ["scan", "--help"])
+    assert result.exit_code == 0
+
+    result = runner.invoke(app, ["unanswered", "--help"])
+    assert result.exit_code == 0
+
+
+# === Chat CLI commands ===
+
+
+def test_chats_cli_help() -> None:
+    result = runner.invoke(app, ["chats", "--help"])
+    assert result.exit_code == 0
+
+
+def test_chats_cli_json_output(monkeypatch: pytest.MonkeyPatch) -> None:
+    chats = [
+        Chat(
+            id="19:g1@thread.v2",
+            chat_type=ChatType.GROUP,
+            display_name="Architecture",
+            last_message_preview="Hello",
+            last_message_time="2026-03-28T10:30:00.000Z",
+        )
+    ]
+
+    class _FakeListChats:
+        def execute(self, *args: object, **kwargs: object) -> list[Chat]:
+            return chats
+
+    monkeypatch.setattr(deps_module, "get_list_chats", lambda: _FakeListChats())
+
+    captured: list[object] = []
+
+    def fake_json_formatter(data: object) -> None:
+        captured.append(data)
+        print(json.dumps([item.model_dump(by_alias=False) for item in cast("list[Chat]", data)]))
+
+    monkeypatch.setattr(formatters_module, "format_json", fake_json_formatter)
+
+    result = runner.invoke(app, ["chats", "--type", "group", "--top", "10", "--json"])
+
+    assert result.exit_code == 0
+    assert captured == [chats]
+
+
+def test_chats_cli_invalid_type(monkeypatch: pytest.MonkeyPatch) -> None:
+    result = runner.invoke(app, ["chats", "--type", "bogus"])
 
     assert result.exit_code == 1
-    assert "URL argument required" in result.stderr
+    assert "Invalid chat type: bogus" in result.stderr
 
 
-def test_parse_url_reads_from_prompt(
-    monkeypatch: pytest.MonkeyPatch,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    monkeypatch.setattr("sys.stdin.isatty", lambda: True)
-    monkeypatch.setattr(typer, "prompt", _prompt_url)
+def test_chat_messages_cli_help() -> None:
+    result = runner.invoke(app, ["chat-messages", "--help"])
+    assert result.exit_code == 0
 
-    cli_module.parse_url_command(None)
 
-    assert "CHANNEL_ID : abc123" in capsys.readouterr().out
+def test_unread_cli_help() -> None:
+    result = runner.invoke(app, ["unread", "--help"])
+    assert result.exit_code == 0
+
+
+def test_send_message_cli_help() -> None:
+    result = runner.invoke(app, ["send-message", "--help"])
+    assert result.exit_code == 0
+
+
+# === Empty state commands ===
 
 
 def test_teams_command_empty_state(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -518,6 +693,9 @@ def test_chat_messages_command_empty_state(monkeypatch: pytest.MonkeyPatch) -> N
     assert "No messages found." in result.stdout
 
 
+# === Send message command ===
+
+
 def test_send_message_command_cancel(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
@@ -548,6 +726,9 @@ def test_send_message_command_yes(monkeypatch: pytest.MonkeyPatch) -> None:
     assert "Message sent. (id: msg-123)" in result.stdout
 
 
+# === Error handling ===
+
+
 def test_teams_command_error_output(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         deps_module,
@@ -559,6 +740,30 @@ def test_teams_command_error_output(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert result.exit_code == 1
     assert "team failure" in result.stderr
+
+
+def test_parse_url_requires_argument_when_not_interactive(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("sys.stdin.isatty", lambda: False)
+
+    result = runner.invoke(app, ["parse-url"])
+
+    assert result.exit_code == 1
+    assert "URL argument required" in result.stderr
+
+
+def test_parse_url_reads_from_prompt(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setattr("sys.stdin.isatty", lambda: True)
+    monkeypatch.setattr(typer, "prompt", _prompt_url)
+
+    cli_module.parse_url_command(None)
+
+    assert "CHANNEL_ID : abc123" in capsys.readouterr().out
+
+
+# === Token command ===
 
 
 def test_token_command_success(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:

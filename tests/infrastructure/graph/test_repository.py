@@ -1,26 +1,14 @@
-"""Tests for channel application service and teams CLI."""
+"""Tests for GraphChannelRepository adapter (HTTP-mocked)."""
 from __future__ import annotations
 
-import json
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, cast
 
-from typer.testing import CliRunner
-
-import ms_teams_cli.presentation.cli as cli_module
-import ms_teams_cli.presentation.dependencies as deps_module
-import ms_teams_cli.presentation.formatters as formatters_module
-from ms_teams_cli.domain.entities import Channel, ChannelMessage, MessageAuthor, MessageBody, Team
+from ms_teams_cli.domain.entities import Channel, ChannelMessage, Team
 from ms_teams_cli.infrastructure.graph import GraphChannelRepository
 
 if TYPE_CHECKING:
-    import pytest
-
     from ms_teams_cli.infrastructure.graph import GraphClient
-
-
-app = cli_module.app
-runner = CliRunner()
 
 
 class FakeGraphClient:
@@ -43,96 +31,9 @@ class FakeGraphClient:
         return []
 
 
-class FakeTokenCache:
-    def __init__(self) -> None:
-        pass
-
-
-class FakeTokenProvider:
-    def __init__(self, cache: FakeTokenCache | None = None) -> None:
-        self.cache: FakeTokenCache | None = cache
-
-
-class FakeGraphClientFactory:
-    def __init__(self, token_provider: FakeTokenProvider) -> None:
-        self.token_provider: FakeTokenProvider = token_provider
-
-
-class FakeChannelService:
-    teams: list[Team] = []
-    channels: list[Channel] = []
-    messages: list[ChannelMessage] = []
-    get_messages_calls: list[dict[str, object]] = []
-    thread_result: tuple[ChannelMessage, list[ChannelMessage]] | None = None
-    get_thread_calls: list[dict[str, object]] = []
-
-    def __init__(self, graph_client: FakeGraphClientFactory) -> None:
-        self.graph_client: FakeGraphClientFactory = graph_client
-
-    def list_teams(self) -> list[Team]:
-        return self.teams
-
-    def list_channels(self, _team_id: str) -> list[Channel]:
-        return self.channels
-
-    def get_messages(
-        self,
-        team_id: str,
-        channel_id: str,
-        top: int = 20,
-        pages: int = 1,
-        since: str | None = None,
-    ) -> list[ChannelMessage]:
-        self.get_messages_calls.append(
-            {
-                "team_id": team_id,
-                "channel_id": channel_id,
-                "top": top,
-                "pages": pages,
-                "since": since,
-            }
-        )
-        return self.messages
-
-    def get_thread(
-        self,
-        team_id: str,
-        channel_id: str,
-        message_id: str,
-        top: int = 50,
-    ) -> tuple[ChannelMessage, list[ChannelMessage]]:
-        self.get_thread_calls.append(
-            {
-                "team_id": team_id,
-                "channel_id": channel_id,
-                "message_id": message_id,
-                "top": top,
-            }
-        )
-        if self.thread_result:
-            return self.thread_result
-        return (
-            ChannelMessage(
-                id="m0",
-                createdDateTime="2024-01-15T14:30:00Z",
-                author=MessageAuthor(displayName="Alice"),
-                body=MessageBody(content="<p>Parent</p>", contentType="html"),
-                replyCount=0,
-                messageType="message",
-                replyToId=None,
-            ),
-            [],
-        )
-
-
-class _FakeUseCase:
-    def __init__(self, return_value: object = None) -> None:
-        self._return_value = return_value
-        self.calls: list[dict[str, object]] = []
-
-    def execute(self, *args: object, **kwargs: object) -> object:
-        self.calls.append({"args": args, "kwargs": kwargs})
-        return self._return_value
+def _now_iso(offset_minutes: int = 0) -> str:
+    dt = datetime.now(UTC) + timedelta(minutes=offset_minutes)
+    return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def test_list_teams_returns_team_objects() -> None:
@@ -276,155 +177,7 @@ def test_get_messages_url_construction_with_since() -> None:
     ]
 
 
-def test_teams_cli_command_smoke(monkeypatch: pytest.MonkeyPatch) -> None:
-    teams = [
-        Team(id="t1", displayName="Team A", description="desc"),
-        Team(id="t2", displayName="Team B", description=None),
-    ]
-
-    monkeypatch.setattr(deps_module, "get_list_teams", lambda: _FakeUseCase(teams))
-
-    captured: list[list[Team]] = []
-
-    def fake_formatter(items: list[Team]) -> None:
-        captured.append(items)
-        for item in items:
-            print(item.display_name)
-        print(f"{len(items)} teams.")
-
-    monkeypatch.setattr(formatters_module, "format_teams_table", fake_formatter)
-
-    result = runner.invoke(app, ["teams"])
-
-    assert result.exit_code == 0
-    assert captured == [teams]
-    assert "Team A" in result.stdout
-    assert "Team B" in result.stdout
-    assert "2 teams." in result.stdout
-
-
-def test_teams_cli_json_output(monkeypatch: pytest.MonkeyPatch) -> None:
-    teams = [Team(id="t1", displayName="Team A", description="desc")]
-
-    monkeypatch.setattr(deps_module, "get_list_teams", lambda: _FakeUseCase(teams))
-
-    captured: list[object] = []
-
-    def fake_json_formatter(data: object) -> None:
-        captured.append(data)
-        item = cast("list[Team]", data)[0]
-        print(json.dumps(item.model_dump(by_alias=False)))
-
-    monkeypatch.setattr(formatters_module, "format_json", fake_json_formatter)
-
-    result = runner.invoke(app, ["teams", "--json"])
-
-    assert result.exit_code == 0
-    assert captured == [teams]
-    assert json.loads(result.stdout) == {
-        "id": "t1",
-        "display_name": "Team A",
-        "description": "desc",
-    }
-
-
-def test_channels_cli_command_smoke(monkeypatch: pytest.MonkeyPatch) -> None:
-    channels = [
-        Channel(id="c1", displayName="General", description="main"),
-        Channel(id="c2", displayName="Random", description=None),
-    ]
-
-    monkeypatch.setattr(deps_module, "get_list_channels", lambda: _FakeUseCase(channels))
-
-    captured: list[list[Channel]] = []
-
-    def fake_formatter(items: list[Channel]) -> None:
-        captured.append(items)
-        for item in items:
-            print(item.display_name)
-        print(f"{len(items)} channels.")
-
-    monkeypatch.setattr(formatters_module, "format_channels_table", fake_formatter)
-
-    result = runner.invoke(app, ["channels", "--team", "t1"])
-
-    assert result.exit_code == 0
-    assert captured == [channels]
-    assert "General" in result.stdout
-    assert "Random" in result.stdout
-    assert "2 channels." in result.stdout
-
-
-def test_channels_cli_json_output(monkeypatch: pytest.MonkeyPatch) -> None:
-    channels = [Channel(id="c1", displayName="General", description="main")]
-
-    monkeypatch.setattr(deps_module, "get_list_channels", lambda: _FakeUseCase(channels))
-
-    captured: list[object] = []
-
-    def fake_json_formatter(data: object) -> None:
-        captured.append(data)
-        item = cast("list[Channel]", data)[0]
-        print(json.dumps(item.model_dump(by_alias=False)))
-
-    monkeypatch.setattr(formatters_module, "format_json", fake_json_formatter)
-
-    result = runner.invoke(app, ["channels", "--team", "t1", "--json"])
-
-    assert result.exit_code == 0
-    assert captured == [channels]
-    assert json.loads(result.stdout) == {
-        "id": "c1",
-        "display_name": "General",
-        "description": "main",
-    }
-
-
-def test_messages_cli_command_smoke(monkeypatch: pytest.MonkeyPatch) -> None:
-    messages = [
-        ChannelMessage(
-            id="m1",
-            createdDateTime="2024-01-15T14:30:00Z",
-            author=MessageAuthor(displayName="Alice Johnson"),
-            body=MessageBody(content="<p>Hello</p>", contentType="html"),
-            replyCount=3,
-            messageType="message",
-            replyToId=None,
-        ),
-        ChannelMessage(
-            id="m2",
-            createdDateTime="2024-01-15T14:31:00Z",
-            author=MessageAuthor(displayName="Bob Smith"),
-            body=MessageBody(content="<p>Hi</p>", contentType="html"),
-            replyCount=0,
-            messageType="message",
-            replyToId=None,
-        ),
-    ]
-
-    monkeypatch.setattr(deps_module, "get_get_messages", lambda: _FakeUseCase(messages))
-
-    captured: list[list[ChannelMessage]] = []
-
-    def fake_formatter(items: list[ChannelMessage]) -> None:
-        captured.append(items)
-        for item in items:
-            print(item.author.display_name)
-        print(f"{len(items)} messages.")
-
-    monkeypatch.setattr(formatters_module, "format_messages_table", fake_formatter)
-
-    result = runner.invoke(app, ["messages", "--team", "t1", "--channel", "c1"])
-
-    assert result.exit_code == 0
-    assert captured == [messages]
-    assert "Alice Johnson" in result.stdout
-    assert "Bob Smith" in result.stdout
-    assert "2 messages." in result.stdout
-
-
 def test_get_thread_returns_parent_and_replies() -> None:
-    """Test that get_thread returns parent message and list of replies."""
     parent_data = {
         "id": "m1",
         "messageType": "message",
@@ -433,7 +186,7 @@ def test_get_thread_returns_parent_and_replies() -> None:
         "from": {"user": {"displayName": "Alice Johnson"}},
         "body": {"contentType": "html", "content": "<p>Original post</p>"},
     }
-    replies_data = {
+    replies_data: dict[str, object] = {
         "value": [
             {
                 "id": "r1",
@@ -483,7 +236,6 @@ def test_get_thread_returns_parent_and_replies() -> None:
 
 
 def test_get_thread_empty_replies() -> None:
-    """Test that get_thread handles empty replies correctly."""
     parent_data = {
         "id": "m1",
         "messageType": "message",
@@ -492,7 +244,7 @@ def test_get_thread_empty_replies() -> None:
         "from": {"user": {"displayName": "Alice Johnson"}},
         "body": {"contentType": "html", "content": "<p>Original post</p>"},
     }
-    replies_data = {"value": []}
+    replies_data: dict[str, object] = {"value": []}
 
     class MultiResponseFakeClient:
         def __init__(self) -> None:
@@ -516,87 +268,28 @@ def test_get_thread_empty_replies() -> None:
     assert replies == []
 
 
-def test_replies_cli_command_smoke(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Test that replies CLI command works end-to-end."""
-    parent = ChannelMessage(
-        id="m1",
-        createdDateTime="2024-01-15T14:30:00Z",
-        author=MessageAuthor(displayName="Alice Johnson"),
-        body=MessageBody(content="<p>Original post</p>", contentType="html"),
-        replyCount=1,
-        messageType="message",
-        replyToId=None,
-    )
-    reply = ChannelMessage(
-        id="r1",
-        createdDateTime="2024-01-15T14:31:00Z",
-        author=MessageAuthor(displayName="Bob Smith"),
-        body=MessageBody(content="<p>Reply</p>", contentType="html"),
-        replyCount=0,
-        messageType="message",
-        replyToId="m1",
-    )
-
-    monkeypatch.setattr(deps_module, "get_get_thread", lambda: _FakeUseCase((parent, [reply])))
-
-    captured_parent: list[ChannelMessage] = []
-    captured_replies: list[list[ChannelMessage]] = []
-
-    def fake_formatter(p: ChannelMessage, r: list[ChannelMessage]) -> None:
-        captured_parent.append(p)
-        captured_replies.append(r)
-        print(f"From : {p.author.display_name}")
-        print(f"Replies ({len(r)} total)")
-        for reply_msg in r:
-            print(f"  {reply_msg.author.display_name}")
-
-    monkeypatch.setattr(formatters_module, "format_thread", fake_formatter)
-
-    result = runner.invoke(app, ["replies", "--team", "t1", "--channel", "c1", "--thread", "m1"])
-
-    assert result.exit_code == 0
-    assert captured_parent == [parent]
-    assert captured_replies == [[reply]]
-    assert "Alice Johnson" in result.stdout
-    assert "Bob Smith" in result.stdout
-
-
-# === Task 7: unanswered + scan tests ===
-
-
-def _now_iso(offset_minutes: int = 0) -> str:
-    dt = datetime.now(UTC) + timedelta(minutes=offset_minutes)
-    return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
-
-
 def test_find_unanswered_filters_all_five_conditions() -> None:
     now = _now_iso(0)
     old = "2020-01-01T00:00:00Z"
     messages: list[dict[str, object]] = [
-        # has replies → excluded
         {"id": "1", "messageType": "message", "createdDateTime": now, "replyCount": 2,
          "from": {"user": {"displayName": "A"}}, "body": {"content": "x"}},
         {"id": "2", "messageType": "message", "createdDateTime": now, "replyCount": 1,
          "from": {"user": {"displayName": "B"}}, "body": {"content": "x"}},
-        # wrong messageType → excluded
         {"id": "3", "messageType": "systemEventMessage", "createdDateTime": now, "replyCount": 0,
          "from": {"user": {"displayName": "C"}}, "body": {"content": "x"}},
         {"id": "4", "messageType": "unknownFutureValue", "createdDateTime": now, "replyCount": 0,
          "from": {"user": {"displayName": "D"}}, "body": {"content": "x"}},
-        # has deletedDateTime → excluded
         {"id": "5", "messageType": "message", "createdDateTime": now, "replyCount": 0,
          "deletedDateTime": "2024-01-01T00:00:00Z",
          "from": {"user": {"displayName": "E"}}, "body": {"content": "x"}},
-        # has replyToId → excluded
         {"id": "6", "messageType": "message", "createdDateTime": now, "replyCount": 0,
          "replyToId": "parent-id",
          "from": {"user": {"displayName": "F"}}, "body": {"content": "x"}},
-        # too old → excluded
         {"id": "7", "messageType": "message", "createdDateTime": old, "replyCount": 0,
          "from": {"user": {"displayName": "G"}}, "body": {"content": "x"}},
         {"id": "8", "messageType": "message", "createdDateTime": old, "replyCount": 0,
          "from": {"user": {"displayName": "H"}}, "body": {"content": "x"}},
-        # truly unanswered → included
         {"id": "9", "messageType": "message", "createdDateTime": now, "replyCount": 0,
          "from": {"user": {"displayName": "I"}}, "body": {"content": "x"}},
         {"id": "10", "messageType": "message", "createdDateTime": now,
@@ -631,10 +324,10 @@ def test_find_unanswered_uses_correct_url() -> None:
 
 
 def test_scan_activity_validates_date_format() -> None:
+    import pytest as _pytest
+
     client = FakeGraphClient({"value": []})
     service = GraphChannelRepository(graph_client=cast("GraphClient", cast("object", client)))
-
-    import pytest as _pytest
 
     with _pytest.raises(ValueError, match="date must be YYYY-MM-DD"):
         service.scan_activity("t1", "not-a-date")
@@ -671,7 +364,6 @@ def test_scan_activity_stop_before_calculation() -> None:
     client = StopBeforeCapture()
     service = GraphChannelRepository(graph_client=cast("GraphClient", cast("object", client)))
 
-    # Need channels to trigger paginate
     client.get = lambda url: {"value": [{"id": "c1", "displayName": "General"}]}  # type: ignore[assignment]
     result = service.scan_activity("t1", target, pages=2)
 
@@ -697,7 +389,6 @@ def test_scan_activity_aggregates_correctly() -> None:
             if "/replies?" in url:
                 if "c1" in url:
                     return {"value": []}
-                # ch2 root has reply on target date
                 return {"value": [
                     {"id": "r1", "messageType": "message",
                      "createdDateTime": "2024-06-15T10:00:00Z", "replyCount": 0,
@@ -710,7 +401,6 @@ def test_scan_activity_aggregates_correctly() -> None:
             self, url: str, max_pages: int = 1, stop_before: str | None = None
         ) -> list[dict[str, object]]:
             if "c1" in url:
-                # ch1: root created on target date
                 return [
                     {"id": "m1", "messageType": "message",
                      "createdDateTime": "2024-06-15T09:00:00Z", "replyCount": 0,
@@ -718,7 +408,6 @@ def test_scan_activity_aggregates_correctly() -> None:
                      "body": {"content": "post"}},
                 ]
             if "c2" in url:
-                # ch2: root from before target but has reply on target
                 return [
                     {"id": "m2", "messageType": "message",
                      "createdDateTime": "2024-06-14T09:00:00Z", "replyCount": 1,
@@ -755,7 +444,6 @@ def test_scan_activity_excludes_channels_with_no_activity() -> None:
         def paginate(
             self, url: str, max_pages: int = 1, stop_before: str | None = None
         ) -> list[dict[str, object]]:
-            # root too old, outside stop_before window
             return [
                 {"id": "m1", "messageType": "message",
                  "createdDateTime": "2024-06-10T09:00:00Z", "replyCount": 0,
@@ -836,12 +524,3 @@ def test_scan_activity_thread_includes_if_reply_on_date() -> None:
     assert thread.root_created_on_date is False
     assert len(thread.replies_on_date) == 1
     assert thread.replies_on_date[0].id == "r1"
-
-
-def test_scan_unanswered_cli_help() -> None:
-    result = runner.invoke(app, ["scan", "--help"])
-    assert result.exit_code == 0
-
-    result = runner.invoke(app, ["unanswered", "--help"])
-    assert result.exit_code == 0
-
