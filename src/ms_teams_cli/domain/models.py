@@ -77,3 +77,32 @@ class ChannelMessage(BaseModel):
         if "author" not in result:
             result["author"] = {"displayName": display_name}
         return result
+
+
+class ThreadActivity(BaseModel):
+    """A thread and its replies on a specific date."""
+
+    model_config: ClassVar[ConfigDict] = ConfigDict(populate_by_name=True)
+
+    root_message: ChannelMessage
+    replies_on_date: list[ChannelMessage]
+    root_created_on_date: bool
+
+
+class ChannelActivity(BaseModel):
+    """Activity summary for a single channel on a specific date."""
+
+    model_config: ClassVar[ConfigDict] = ConfigDict(populate_by_name=True)
+
+    channel_name: str
+    channel_id: str
+    threads: list[ThreadActivity]
+
+
+class ScanResult(BaseModel):
+    """Result of scanning all channels for activity on a date."""
+
+    model_config: ClassVar[ConfigDict] = ConfigDict(populate_by_name=True)
+
+    date: str
+    channels: list[ChannelActivity]

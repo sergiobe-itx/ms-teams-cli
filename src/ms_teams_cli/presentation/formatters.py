@@ -11,7 +11,7 @@ from rich.table import Table
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
-    from ms_teams_cli.domain.models import Channel, ChannelMessage, Team
+    from ms_teams_cli.domain.models import Channel, ChannelMessage, ScanResult, Team
 
 
 @runtime_checkable
@@ -159,3 +159,81 @@ def format_thread(parent: ChannelMessage, replies: list[ChannelMessage]) -> None
         print(f"    {strip_html(msg.body.content)[:200]}")
         print()
     print(f"{len(replies)} replies.")
+
+
+def format_unanswered_table(messages: list[ChannelMessage], minutes: int) -> None:
+    """Print unanswered messages as table."""
+    from ms_teams_cli.domain.text import format_datetime, strip_html
+
+    if not messages:
+        print(f"No unanswered posts in last {minutes} min.")
+        return
+
+    if _is_tty():
+        console = Console()
+        table = Table(
+            title=f"Unanswered posts (last {minutes} min)",
+            show_header=True,
+            header_style="bold cyan",
+        )
+        table.add_column("Author", style="green", min_width=20)
+        table.add_column("When", style="dim", min_width=16)
+        table.add_column("Preview")
+        for msg in messages:
+            preview = strip_html(msg.body.content)[:60]
+            table.add_row(
+                msg.author.display_name,
+                format_datetime(msg.created_date_time),
+                preview,
+            )
+        console.print(table)
+    else:
+        print(f"Posts without replies in last {minutes} min:")
+        print(f"{'AUTHOR':<25} {'WHEN':<20} PREVIEW")
+        print("-" * 90)
+        for msg in messages:
+            preview = strip_html(msg.body.content)[:60]
+            print(
+                f"{msg.author.display_name:<25} "
+                f"{format_datetime(msg.created_date_time):<20} "
+                f"{preview}"
+            )
+    print(f"\n{len(messages)} unanswered posts (window: last {minutes} min).")
+
+
+def format_scan_result(result: ScanResult) -> None:
+    """Print scan activity results with per-channel thread summaries."""
+    from ms_teams_cli.domain.text import format_datetime, strip_html
+
+    if not result.channels:
+        print(f"No activity found on {result.date}.")
+        return
+
+    total_posts = 0
+    total_replies = 0
+
+    for ch in result.channels:
+        day_posts = sum(1 for t in ch.threads if t.root_created_on_date)
+        day_reps = sum(len(t.replies_on_date) for t in ch.threads)
+        total_posts += day_posts
+        total_replies += day_reps
+
+        print("━" * 64)
+        print(f"  {ch.channel_name}  [{day_posts} posts | {day_reps} replies]")
+        print("━" * 64)
+
+        for t in ch.threads:
+            root_dt = format_datetime(t.root_message.created_date_time)
+            tag = " ◀ TODAY" if t.root_created_on_date else f"  (thread from {root_dt[:10]})"
+            print(f"  ▶ [{root_dt}]{tag}")
+            body = strip_html(t.root_message.body.content)[:120]
+            print(f"     {t.root_message.author.display_name}: {body}")
+            for r in t.replies_on_date:
+                r_time = r.created_date_time[11:16] if len(r.created_date_time) > 16 else ""
+                r_body = strip_html(r.body.content)[:100]
+                print(f"    ↩ {r_time}  {r.author.display_name:<28} {r_body}")
+            print()
+
+    print("=" * 64)
+    print(f"TOTAL {result.date}: {total_posts} new posts | {total_replies} replies")
+    print(f"Active channels: {len(result.channels)}")

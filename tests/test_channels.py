@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, cast
 
 from typer.testing import CliRunner
@@ -35,7 +36,9 @@ class FakeGraphClient:
         self.called_urls.append(url)
         return self._payload
 
-    def paginate(self, url: str, max_pages: int = 1) -> list[dict[str, object]]:
+    def paginate(
+        self, url: str, max_pages: int = 1, stop_before: str | None = None
+    ) -> list[dict[str, object]]:
         self.paginate_calls.append((url, max_pages))
         value = self._payload.get("value", [])
         if isinstance(value, list):
@@ -590,4 +593,289 @@ def test_replies_cli_command_smoke(monkeypatch: pytest.MonkeyPatch) -> None:
     ]
     assert "Alice Johnson" in result.stdout
     assert "Bob Smith" in result.stdout
+
+
+# === Task 7: unanswered + scan tests ===
+
+
+def _now_iso(offset_minutes: int = 0) -> str:
+    dt = datetime.now(UTC) + timedelta(minutes=offset_minutes)
+    return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def test_find_unanswered_filters_all_five_conditions() -> None:
+    now = _now_iso(0)
+    old = "2020-01-01T00:00:00Z"
+    messages: list[dict[str, object]] = [
+        # has replies → excluded
+        {"id": "1", "messageType": "message", "createdDateTime": now, "replyCount": 2,
+         "from": {"user": {"displayName": "A"}}, "body": {"content": "x"}},
+        {"id": "2", "messageType": "message", "createdDateTime": now, "replyCount": 1,
+         "from": {"user": {"displayName": "B"}}, "body": {"content": "x"}},
+        # wrong messageType → excluded
+        {"id": "3", "messageType": "systemEventMessage", "createdDateTime": now, "replyCount": 0,
+         "from": {"user": {"displayName": "C"}}, "body": {"content": "x"}},
+        {"id": "4", "messageType": "unknownFutureValue", "createdDateTime": now, "replyCount": 0,
+         "from": {"user": {"displayName": "D"}}, "body": {"content": "x"}},
+        # has deletedDateTime → excluded
+        {"id": "5", "messageType": "message", "createdDateTime": now, "replyCount": 0,
+         "deletedDateTime": "2024-01-01T00:00:00Z",
+         "from": {"user": {"displayName": "E"}}, "body": {"content": "x"}},
+        # has replyToId → excluded
+        {"id": "6", "messageType": "message", "createdDateTime": now, "replyCount": 0,
+         "replyToId": "parent-id",
+         "from": {"user": {"displayName": "F"}}, "body": {"content": "x"}},
+        # too old → excluded
+        {"id": "7", "messageType": "message", "createdDateTime": old, "replyCount": 0,
+         "from": {"user": {"displayName": "G"}}, "body": {"content": "x"}},
+        {"id": "8", "messageType": "message", "createdDateTime": old, "replyCount": 0,
+         "from": {"user": {"displayName": "H"}}, "body": {"content": "x"}},
+        # truly unanswered → included
+        {"id": "9", "messageType": "message", "createdDateTime": now, "replyCount": 0,
+         "from": {"user": {"displayName": "I"}}, "body": {"content": "x"}},
+        {"id": "10", "messageType": "message", "createdDateTime": now,
+         "from": {"user": {"displayName": "J"}}, "body": {"content": "x"}},
+    ]
+
+    client = FakeGraphClient({"value": messages})
+    service = ChannelService(graph_client=cast("GraphClient", cast("object", client)))
+    result = service.find_unanswered("t1", "c1", minutes=120)
+
+    assert len(result) == 2
+    assert {m.id for m in result} == {"9", "10"}
+
+
+def test_find_unanswered_empty() -> None:
+    client = FakeGraphClient({"value": []})
+    service = ChannelService(graph_client=cast("GraphClient", cast("object", client)))
+    result = service.find_unanswered("t1", "c1")
+
+    assert result == []
+
+
+def test_find_unanswered_uses_correct_url() -> None:
+    client = FakeGraphClient({"value": []})
+    service = ChannelService(graph_client=cast("GraphClient", cast("object", client)))
+    _ = service.find_unanswered("team-abc", "channel-xyz", minutes=60)
+
+    assert len(client.called_urls) == 1
+    assert "team-abc" in client.called_urls[0]
+    assert "channel-xyz" in client.called_urls[0]
+    assert "messages" in client.called_urls[0]
+
+
+def test_scan_activity_validates_date_format() -> None:
+    client = FakeGraphClient({"value": []})
+    service = ChannelService(graph_client=cast("GraphClient", cast("object", client)))
+
+    import pytest as _pytest
+
+    with _pytest.raises(ValueError, match="date must be YYYY-MM-DD"):
+        service.scan_activity("t1", "not-a-date")
+
+    with _pytest.raises(ValueError, match="date must be YYYY-MM-DD"):
+        service.scan_activity("t1", "2024/01/15")
+
+    with _pytest.raises(ValueError, match="date must be YYYY-MM-DD"):
+        service.scan_activity("t1", "01-15-2024")
+
+
+def test_scan_activity_stop_before_calculation() -> None:
+    target = "2024-06-15"
+    expected_stop = (
+        datetime.strptime(target, "%Y-%m-%d") - timedelta(days=3)
+    ).strftime("%Y-%m-%d")
+    assert expected_stop == "2024-06-12"
+
+    class StopBeforeCapture:
+        def __init__(self) -> None:
+            self.called_urls: list[str] = []
+            self.paginate_stop_before: list[str | None] = []
+
+        def get(self, url: str) -> dict[str, object]:
+            self.called_urls.append(url)
+            return {"value": []}
+
+        def paginate(
+            self, url: str, max_pages: int = 1, stop_before: str | None = None
+        ) -> list[dict[str, object]]:
+            self.paginate_stop_before.append(stop_before)
+            return []
+
+    client = StopBeforeCapture()
+    service = ChannelService(graph_client=cast("GraphClient", cast("object", client)))
+
+    # Need channels to trigger paginate
+    client.get = lambda url: {"value": [{"id": "c1", "displayName": "General"}]}  # type: ignore[assignment]
+    result = service.scan_activity("t1", target, pages=2)
+
+    assert client.paginate_stop_before == ["2024-06-12"]
+    assert result.date == target
+    assert result.channels == []
+
+
+def test_scan_activity_aggregates_correctly() -> None:
+    target = "2024-06-15"
+
+    class ScanFakeClient:
+        def __init__(self) -> None:
+            self.called_urls: list[str] = []
+
+        def get(self, url: str) -> dict[str, object]:
+            self.called_urls.append(url)
+            if "channels?" in url:
+                return {"value": [
+                    {"id": "c1", "displayName": "Channel 1"},
+                    {"id": "c2", "displayName": "Channel 2"},
+                ]}
+            if "/replies?" in url:
+                if "c1" in url:
+                    return {"value": []}
+                # ch2 root has reply on target date
+                return {"value": [
+                    {"id": "r1", "messageType": "message",
+                     "createdDateTime": "2024-06-15T10:00:00Z", "replyCount": 0,
+                     "from": {"user": {"displayName": "Reply Author"}},
+                     "body": {"content": "reply"}},
+                ]}
+            return {"value": []}
+
+        def paginate(
+            self, url: str, max_pages: int = 1, stop_before: str | None = None
+        ) -> list[dict[str, object]]:
+            if "c1" in url:
+                # ch1: root created on target date
+                return [
+                    {"id": "m1", "messageType": "message",
+                     "createdDateTime": "2024-06-15T09:00:00Z", "replyCount": 0,
+                     "from": {"user": {"displayName": "Author 1"}},
+                     "body": {"content": "post"}},
+                ]
+            if "c2" in url:
+                # ch2: root from before target but has reply on target
+                return [
+                    {"id": "m2", "messageType": "message",
+                     "createdDateTime": "2024-06-14T09:00:00Z", "replyCount": 1,
+                     "from": {"user": {"displayName": "Author 2"}},
+                     "body": {"content": "older post"}},
+                ]
+            return []
+
+    client = ScanFakeClient()
+    service = ChannelService(graph_client=cast("GraphClient", cast("object", client)))
+    result = service.scan_activity("t1", target, pages=2)
+
+    assert len(result.channels) == 2
+    assert result.channels[0].channel_name == "Channel 1"
+    assert result.channels[0].threads[0].root_created_on_date is True
+    assert result.channels[1].channel_name == "Channel 2"
+    assert result.channels[1].threads[0].root_created_on_date is False
+    assert len(result.channels[1].threads[0].replies_on_date) == 1
+
+
+def test_scan_activity_excludes_channels_with_no_activity() -> None:
+    target = "2024-06-15"
+
+    class NoActivityClient:
+        def get(self, url: str) -> dict[str, object]:
+            if "channels?" in url:
+                return {"value": [
+                    {"id": "c1", "displayName": "Empty Channel"},
+                ]}
+            if "/replies?" in url:
+                return {"value": []}
+            return {"value": []}
+
+        def paginate(
+            self, url: str, max_pages: int = 1, stop_before: str | None = None
+        ) -> list[dict[str, object]]:
+            # root too old, outside stop_before window
+            return [
+                {"id": "m1", "messageType": "message",
+                 "createdDateTime": "2024-06-10T09:00:00Z", "replyCount": 0,
+                 "from": {"user": {"displayName": "X"}},
+                 "body": {"content": "old"}},
+            ]
+
+    client = NoActivityClient()
+    service = ChannelService(graph_client=cast("GraphClient", cast("object", client)))
+    result = service.scan_activity("t1", target, pages=2)
+
+    assert result.channels == []
+
+
+def test_scan_activity_thread_includes_if_root_on_date() -> None:
+    target = "2024-06-15"
+
+    class RootOnDateClient:
+        def get(self, url: str) -> dict[str, object]:
+            if "channels?" in url:
+                return {"value": [{"id": "c1", "displayName": "Ch1"}]}
+            if "/replies?" in url:
+                return {"value": []}
+            return {"value": []}
+
+        def paginate(
+            self, url: str, max_pages: int = 1, stop_before: str | None = None
+        ) -> list[dict[str, object]]:
+            return [
+                {"id": "m1", "messageType": "message",
+                 "createdDateTime": "2024-06-15T12:00:00Z", "replyCount": 0,
+                 "from": {"user": {"displayName": "Author"}},
+                 "body": {"content": "on day"}},
+            ]
+
+    client = RootOnDateClient()
+    service = ChannelService(graph_client=cast("GraphClient", cast("object", client)))
+    result = service.scan_activity("t1", target, pages=2)
+
+    assert len(result.channels) == 1
+    thread = result.channels[0].threads[0]
+    assert thread.root_created_on_date is True
+    assert thread.replies_on_date == []
+
+
+def test_scan_activity_thread_includes_if_reply_on_date() -> None:
+    target = "2024-06-15"
+
+    class ReplyOnDateClient:
+        def get(self, url: str) -> dict[str, object]:
+            if "channels?" in url:
+                return {"value": [{"id": "c1", "displayName": "Ch1"}]}
+            if "/replies?" in url:
+                return {"value": [
+                    {"id": "r1", "messageType": "message",
+                     "createdDateTime": "2024-06-15T14:00:00Z", "replyCount": 0,
+                     "from": {"user": {"displayName": "Replier"}},
+                     "body": {"content": "reply text"}},
+                ]}
+            return {"value": []}
+
+        def paginate(
+            self, url: str, max_pages: int = 1, stop_before: str | None = None
+        ) -> list[dict[str, object]]:
+            return [
+                {"id": "m1", "messageType": "message",
+                 "createdDateTime": "2024-06-13T09:00:00Z", "replyCount": 1,
+                 "from": {"user": {"displayName": "Root Author"}},
+                 "body": {"content": "older root"}},
+            ]
+
+    client = ReplyOnDateClient()
+    service = ChannelService(graph_client=cast("GraphClient", cast("object", client)))
+    result = service.scan_activity("t1", target, pages=2)
+
+    assert len(result.channels) == 1
+    thread = result.channels[0].threads[0]
+    assert thread.root_created_on_date is False
+    assert len(thread.replies_on_date) == 1
+    assert thread.replies_on_date[0].id == "r1"
+
+
+def test_scan_unanswered_cli_help() -> None:
+    result = runner.invoke(app, ["scan", "--help"])
+    assert result.exit_code == 0
+
+    result = runner.invoke(app, ["unanswered", "--help"])
+    assert result.exit_code == 0
 

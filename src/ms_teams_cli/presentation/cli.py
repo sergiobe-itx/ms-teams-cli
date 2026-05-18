@@ -188,5 +188,101 @@ def replies_command(
     format_thread(parent, replies)
 
 
+@app.command("unanswered")
+def unanswered_command(
+    team_id: Annotated[str, typer.Option("--team", help="Team ID")],  # pyright: ignore[reportUnknownMemberType]
+    channel_id: Annotated[
+        str,
+        typer.Option("--channel", help="Channel ID"),  # pyright: ignore[reportUnknownMemberType]
+    ],
+    minutes: Annotated[
+        int,
+        typer.Option("--minutes", help="Look-back window in minutes"),  # pyright: ignore[reportUnknownMemberType]
+    ] = 120,
+    json_output: Annotated[
+        bool,
+        typer.Option("--json", help="Output as JSON"),  # pyright: ignore[reportUnknownMemberType]
+    ] = False,
+) -> None:
+    """List posts with no replies within the last N minutes."""
+    from ms_teams_cli.application.channels import ChannelService
+    from ms_teams_cli.infrastructure.az_provider import AzGraphTokenProvider
+    from ms_teams_cli.infrastructure.graph_client import GraphClient
+    from ms_teams_cli.infrastructure.token_cache import TokenCache
+    from ms_teams_cli.presentation.formatters import format_json, format_unanswered_table
+
+    try:
+        cache = TokenCache()
+        provider = AzGraphTokenProvider(cache=cache)
+        client = GraphClient(token_provider=provider)
+        service = ChannelService(graph_client=client)
+        messages = service.find_unanswered(
+            team_id=team_id,
+            channel_id=channel_id,
+            minutes=minutes,
+        )
+    except TeamsError as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(code=1) from exc
+
+    if json_output:
+        format_json(messages)
+        return
+
+    format_unanswered_table(messages, minutes)
+
+
+@app.command("scan")
+def scan_command(
+    team_id: Annotated[str, typer.Option("--team", help="Team ID")],  # pyright: ignore[reportUnknownMemberType]
+    date: Annotated[
+        str,
+        typer.Option("--date", help="Target date YYYY-MM-DD"),  # pyright: ignore[reportUnknownMemberType]
+    ],
+    pages: Annotated[
+        int,
+        typer.Option("--pages", help="Max pages per channel"),  # pyright: ignore[reportUnknownMemberType]
+    ] = 2,
+    top: Annotated[
+        int,
+        typer.Option("--top", help="Items per page"),  # pyright: ignore[reportUnknownMemberType]
+    ] = 50,
+    json_output: Annotated[
+        bool,
+        typer.Option("--json", help="Output as JSON"),  # pyright: ignore[reportUnknownMemberType]
+    ] = False,
+) -> None:
+    """Scan all channels of a team for activity on a specific date."""
+    from ms_teams_cli.application.channels import ChannelService
+    from ms_teams_cli.infrastructure.az_provider import AzGraphTokenProvider
+    from ms_teams_cli.infrastructure.graph_client import GraphClient
+    from ms_teams_cli.infrastructure.token_cache import TokenCache
+    from ms_teams_cli.presentation.formatters import format_json, format_scan_result
+
+    try:
+        cache = TokenCache()
+        provider = AzGraphTokenProvider(cache=cache)
+        client = GraphClient(token_provider=provider)
+        service = ChannelService(graph_client=client)
+        result = service.scan_activity(
+            team_id=team_id,
+            date=date,
+            pages=pages,
+            top=top,
+        )
+    except ValueError as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(code=1) from exc
+    except TeamsError as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(code=1) from exc
+
+    if json_output:
+        format_json(result)
+        return
+
+    format_scan_result(result)
+
+
 if __name__ == "__main__":
     app()

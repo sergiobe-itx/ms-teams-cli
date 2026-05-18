@@ -1,9 +1,18 @@
 """Channel application services."""
 from __future__ import annotations
 
+import re
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, cast
 
-from ms_teams_cli.domain.models import Channel, ChannelMessage, Team
+from ms_teams_cli.domain.models import (
+    Channel,
+    ChannelActivity,
+    ChannelMessage,
+    ScanResult,
+    Team,
+    ThreadActivity,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -89,3 +98,135 @@ class ChannelService:
             for item in _as_channel_payloads(replies_data.get("value", []))
         ]
         return parent, replies
+
+    def find_unanswered(
+        self,
+        team_id: str,
+        channel_id: str,
+        minutes: int = 120,
+    ) -> list[ChannelMessage]:
+        """Find messages with no replies within the last N minutes."""
+        url = f"{_GRAPH_BETA}/teams/{team_id}/channels/{channel_id}/messages?$top=50"
+        data = self._client.get(url)
+        msgs = _as_channel_payloads(data.get("value", []))
+        cutoff = datetime.now(UTC) - timedelta(minutes=minutes)
+
+        results: list[ChannelMessage] = []
+        for m in msgs:
+            if m.get("messageType") != "message":
+                continue
+            if m.get("replyToId"):
+                continue
+            if m.get("deletedDateTime"):
+                continue
+            reply_count = m.get("replyCount")
+            if isinstance(reply_count, int) and reply_count > 0:
+                continue
+                continue
+            created_str = m.get("createdDateTime")
+            if not isinstance(created_str, str):
+                continue
+            try:
+                created = datetime.fromisoformat(
+                    re.sub(r"\.\d+", "", created_str).replace("Z", "+00:00")
+                )
+            except (ValueError, TypeError):
+                continue
+            if created < cutoff:
+                continue
+            results.append(ChannelMessage.model_validate(m))
+        return results
+
+    def scan_activity(
+        self,
+        team_id: str,
+        date: str,
+        pages: int = 2,
+        top: int = 50,
+    ) -> ScanResult:
+        """Scan all channels of a team for activity on a specific date."""
+        if not re.match(r"^\d{4}-\d{2}-\d{2}$", date):
+            raise ValueError("date must be YYYY-MM-DD")
+
+        stop_before = (
+            datetime.strptime(date, "%Y-%m-%d") - timedelta(days=3)
+        ).strftime("%Y-%m-%d")
+
+        ch_data = self._client.get(f"{_GRAPH}/teams/{team_id}/channels?$select=id,displayName")
+        channels_raw = _as_channel_payloads(ch_data.get("value", []))
+
+        channel_activities: list[ChannelActivity] = []
+
+        for ch in channels_raw:
+            cid = ch.get("id", "")
+            cname = ch.get("displayName", "")
+            if not isinstance(cid, str) or not isinstance(cname, str):
+                continue
+
+            msg_url = f"{_GRAPH_BETA}/teams/{team_id}/channels/{cid}/messages?$top={top}"
+            msgs = list(self._client.paginate(msg_url, max_pages=pages, stop_before=stop_before))
+
+            roots: dict[str, dict[str, object]] = {}
+            for m in msgs:
+                if m.get("messageType") != "message":
+                    continue
+                if m.get("deletedDateTime"):
+                    continue
+                if m.get("replyToId"):
+                    continue
+                created_dt = m.get("createdDateTime", "")
+                if not isinstance(created_dt, str):
+                    continue
+                if created_dt[:10] >= stop_before:
+                    roots[str(m.get("id", ""))] = m
+
+            if not roots:
+                continue
+
+            channel_threads: list[ThreadActivity] = []
+            for mid, root in sorted(
+                roots.items(), key=lambda x: str(x[1].get("createdDateTime", ""))
+            ):
+                root_dt = str(root.get("createdDateTime", ""))
+                root_on_day = root_dt.startswith(date)
+
+                rep_url = (
+                    f"{_GRAPH_BETA}/teams/{team_id}/channels/{cid}"
+                    f"/messages/{mid}/replies?$top=50"
+                )
+                rep_data = self._client.get(rep_url)
+                all_replies = _as_channel_payloads(rep_data.get("value", []))
+
+                day_replies_raw = [
+                    r
+                    for r in all_replies
+                    if isinstance(r.get("createdDateTime"), str)
+                    and str(r.get("createdDateTime", "")).startswith(date)
+                    and not r.get("deletedDateTime")
+                ]
+
+                if not root_on_day and not day_replies_raw:
+                    continue
+
+                day_replies = [ChannelMessage.model_validate(r) for r in day_replies_raw]
+                root_message = ChannelMessage.model_validate(root)
+                channel_threads.append(
+                    ThreadActivity(
+                        root_message=root_message,
+                        replies_on_date=day_replies,
+                        root_created_on_date=root_on_day,
+                    )
+                )
+
+            if not channel_threads:
+                continue
+
+            channel_activities.append(
+                ChannelActivity(
+                    channel_name=cname,
+                    channel_id=cid,
+                    threads=channel_threads,
+                )
+            )
+
+        return ScanResult(date=date, channels=channel_activities)
