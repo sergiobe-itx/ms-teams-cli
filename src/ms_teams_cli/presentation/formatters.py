@@ -140,3 +140,22 @@ def format_messages_table(messages: Iterable[ChannelMessage]) -> None:
         print("No messages found.")
         return
     print(f"\n{count} messages.")
+
+
+def format_thread(parent: ChannelMessage, replies: list[ChannelMessage]) -> None:
+    """Display an original post with all its replies."""
+    from ms_teams_cli.domain.text import format_datetime, strip_html
+
+    print("── ORIGINAL POST " + "─" * 44)
+    print(f"From : {parent.author.display_name}")
+    print(f"Date : {format_datetime(parent.created_date_time)}")
+    print(f"Body : {strip_html(parent.body.content)[:300]}")
+    print()
+    print(f"── REPLIES ({len(replies)} total) " + "─" * 40)
+    if not replies:
+        print("  (no replies)")
+    for i, msg in enumerate(replies, 1):
+        print(f"[{i}] {msg.author.display_name} @ {format_datetime(msg.created_date_time)}")
+        print(f"    {strip_html(msg.body.content)[:200]}")
+        print()
+    print(f"{len(replies)} replies.")

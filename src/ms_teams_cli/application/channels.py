@@ -71,3 +71,21 @@ class ChannelService:
             url += f"&$filter=createdDateTime%20ge%20{since}"
         for item in self._client.paginate(url, max_pages=pages):
             yield ChannelMessage.model_validate(item)
+
+    def get_thread(
+        self,
+        team_id: str,
+        channel_id: str,
+        message_id: str,
+        top: int = 50,
+    ) -> tuple[ChannelMessage, list[ChannelMessage]]:
+        """Return the parent message and its replies for a thread."""
+        base = f"{_GRAPH_BETA}/teams/{team_id}/channels/{channel_id}/messages"
+        parent_data = self._client.get(f"{base}/{message_id}")
+        replies_data = self._client.get(f"{base}/{message_id}/replies?$top={top}")
+        parent = ChannelMessage.model_validate(parent_data)
+        replies = [
+            ChannelMessage.model_validate(item)
+            for item in _as_channel_payloads(replies_data.get("value", []))
+        ]
+        return parent, replies

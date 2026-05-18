@@ -139,5 +139,54 @@ def messages_command(
     format_messages_table(messages)
 
 
+@app.command("replies")
+def replies_command(
+    team_id: Annotated[str, typer.Option("--team", help="Team ID")],  # pyright: ignore[reportUnknownMemberType]
+    channel_id: Annotated[
+        str,
+        typer.Option("--channel", help="Channel ID"),  # pyright: ignore[reportUnknownMemberType]
+    ],
+    thread_id: Annotated[
+        str,
+        typer.Option("--thread", help="Parent message ID"),  # pyright: ignore[reportUnknownMemberType]
+    ],
+    top: Annotated[
+        int,
+        typer.Option("--top", help="Max replies to fetch"),  # pyright: ignore[reportUnknownMemberType]
+    ] = 50,
+    json_output: Annotated[
+        bool,
+        typer.Option("--json", help="Output as JSON"),  # pyright: ignore[reportUnknownMemberType]
+    ] = False,
+) -> None:
+    """Show a thread: original post and all replies."""
+    from ms_teams_cli.application.channels import ChannelService
+    from ms_teams_cli.infrastructure.az_provider import AzGraphTokenProvider
+    from ms_teams_cli.infrastructure.graph_client import GraphClient
+    from ms_teams_cli.infrastructure.token_cache import TokenCache
+    from ms_teams_cli.presentation.formatters import format_json, format_thread
+
+    try:
+        cache = TokenCache()
+        provider = AzGraphTokenProvider(cache=cache)
+        client = GraphClient(token_provider=provider)
+        service = ChannelService(graph_client=client)
+        parent, replies = service.get_thread(
+            team_id=team_id,
+            channel_id=channel_id,
+            message_id=thread_id,
+            top=top,
+        )
+    except TeamsError as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(code=1) from exc
+
+    if json_output:
+        format_json({"parent": parent.model_dump(), "replies": [r.model_dump() for r in replies]})
+        return
+
+    format_thread(parent, replies)
+
+
 if __name__ == "__main__":
     app()

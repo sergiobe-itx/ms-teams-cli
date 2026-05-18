@@ -63,6 +63,8 @@ class FakeChannelService:
     channels: list[Channel] = []
     messages: list[ChannelMessage] = []
     get_messages_calls: list[dict[str, object]] = []
+    thread_result: tuple[ChannelMessage, list[ChannelMessage]] | None = None
+    get_thread_calls: list[dict[str, object]] = []
 
     def __init__(self, graph_client: FakeGraphClientFactory) -> None:
         self.graph_client: FakeGraphClientFactory = graph_client
@@ -91,6 +93,36 @@ class FakeChannelService:
             }
         )
         return self.messages
+
+    def get_thread(
+        self,
+        team_id: str,
+        channel_id: str,
+        message_id: str,
+        top: int = 50,
+    ) -> tuple[ChannelMessage, list[ChannelMessage]]:
+        self.get_thread_calls.append(
+            {
+                "team_id": team_id,
+                "channel_id": channel_id,
+                "message_id": message_id,
+                "top": top,
+            }
+        )
+        if self.thread_result:
+            return self.thread_result
+        return (
+            ChannelMessage(
+                id="m0",
+                createdDateTime="2024-01-15T14:30:00Z",
+                author=MessageAuthor(displayName="Alice"),
+                body=MessageBody(content="<p>Parent</p>", contentType="html"),
+                replyCount=0,
+                messageType="message",
+                replyToId=None,
+            ),
+            [],
+        )
 
 
 def test_list_teams_returns_team_objects() -> None:
@@ -407,3 +439,155 @@ def test_messages_cli_command_smoke(monkeypatch: pytest.MonkeyPatch) -> None:
     assert "Alice Johnson" in result.stdout
     assert "Bob Smith" in result.stdout
     assert "2 messages." in result.stdout
+
+
+def test_get_thread_returns_parent_and_replies() -> None:
+    """Test that get_thread returns parent message and list of replies."""
+    parent_data = {
+        "id": "m1",
+        "messageType": "message",
+        "createdDateTime": "2024-01-15T14:30:00Z",
+        "replyCount": 2,
+        "from": {"user": {"displayName": "Alice Johnson"}},
+        "body": {"contentType": "html", "content": "<p>Original post</p>"},
+    }
+    replies_data = {
+        "value": [
+            {
+                "id": "r1",
+                "messageType": "message",
+                "createdDateTime": "2024-01-15T14:31:00Z",
+                "replyCount": 0,
+                "from": {"user": {"displayName": "Bob Smith"}},
+                "body": {"contentType": "html", "content": "<p>Reply 1</p>"},
+            },
+            {
+                "id": "r2",
+                "messageType": "message",
+                "createdDateTime": "2024-01-15T14:32:00Z",
+                "replyCount": 0,
+                "from": {"user": {"displayName": "Carol Jones"}},
+                "body": {"contentType": "html", "content": "<p>Reply 2</p>"},
+            },
+        ]
+    }
+
+    class MultiResponseFakeClient:
+        def __init__(self) -> None:
+            self.called_urls: list[str] = []
+            self.call_count = 0
+
+        def get(self, url: str) -> dict[str, object]:
+            self.called_urls.append(url)
+            self.call_count += 1
+            if "replies" in url:
+                return replies_data
+            return parent_data
+
+        def paginate(self, url: str, max_pages: int = 1) -> list[dict[str, object]]:
+            return []
+
+    client = MultiResponseFakeClient()
+    service = ChannelService(graph_client=cast("GraphClient", cast("object", client)))
+    parent, replies = service.get_thread("team-123", "channel-456", "msg-789", top=50)
+
+    assert isinstance(parent, ChannelMessage)
+    assert parent.id == "m1"
+    assert parent.author.display_name == "Alice Johnson"
+    assert len(replies) == 2
+    assert all(isinstance(r, ChannelMessage) for r in replies)
+    assert replies[0].id == "r1"
+    assert replies[1].id == "r2"
+
+
+def test_get_thread_empty_replies() -> None:
+    """Test that get_thread handles empty replies correctly."""
+    parent_data = {
+        "id": "m1",
+        "messageType": "message",
+        "createdDateTime": "2024-01-15T14:30:00Z",
+        "replyCount": 0,
+        "from": {"user": {"displayName": "Alice Johnson"}},
+        "body": {"contentType": "html", "content": "<p>Original post</p>"},
+    }
+    replies_data = {"value": []}
+
+    class MultiResponseFakeClient:
+        def __init__(self) -> None:
+            self.called_urls: list[str] = []
+
+        def get(self, url: str) -> dict[str, object]:
+            self.called_urls.append(url)
+            if "replies" in url:
+                return replies_data
+            return parent_data
+
+        def paginate(self, url: str, max_pages: int = 1) -> list[dict[str, object]]:
+            return []
+
+    client = MultiResponseFakeClient()
+    service = ChannelService(graph_client=cast("GraphClient", cast("object", client)))
+    parent, replies = service.get_thread("team-123", "channel-456", "msg-789")
+
+    assert isinstance(parent, ChannelMessage)
+    assert parent.id == "m1"
+    assert replies == []
+
+
+def test_replies_cli_command_smoke(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that replies CLI command works end-to-end."""
+    parent = ChannelMessage(
+        id="m1",
+        createdDateTime="2024-01-15T14:30:00Z",
+        author=MessageAuthor(displayName="Alice Johnson"),
+        body=MessageBody(content="<p>Original post</p>", contentType="html"),
+        replyCount=1,
+        messageType="message",
+        replyToId=None,
+    )
+    reply = ChannelMessage(
+        id="r1",
+        createdDateTime="2024-01-15T14:31:00Z",
+        author=MessageAuthor(displayName="Bob Smith"),
+        body=MessageBody(content="<p>Reply</p>", contentType="html"),
+        replyCount=0,
+        messageType="message",
+        replyToId="m1",
+    )
+    FakeChannelService.thread_result = (parent, [reply])
+    FakeChannelService.get_thread_calls = []
+
+    monkeypatch.setattr(token_cache_module, "TokenCache", FakeTokenCache)
+    monkeypatch.setattr(az_provider_module, "AzGraphTokenProvider", FakeTokenProvider)
+    monkeypatch.setattr(graph_client_module, "GraphClient", FakeGraphClientFactory)
+    monkeypatch.setattr(channels_module, "ChannelService", FakeChannelService)
+
+    captured_parent: list[ChannelMessage] = []
+    captured_replies: list[list[ChannelMessage]] = []
+
+    def fake_formatter(p: ChannelMessage, r: list[ChannelMessage]) -> None:
+        captured_parent.append(p)
+        captured_replies.append(r)
+        print(f"From : {p.author.display_name}")
+        print(f"Replies ({len(r)} total)")
+        for reply_msg in r:
+            print(f"  {reply_msg.author.display_name}")
+
+    monkeypatch.setattr(formatters_module, "format_thread", fake_formatter)
+
+    result = runner.invoke(app, ["replies", "--team", "t1", "--channel", "c1", "--thread", "m1"])
+
+    assert result.exit_code == 0
+    assert captured_parent == [parent]
+    assert captured_replies == [[reply]]
+    assert FakeChannelService.get_thread_calls == [
+        {
+            "team_id": "t1",
+            "channel_id": "c1",
+            "message_id": "m1",
+            "top": 50,
+        }
+    ]
+    assert "Alice Johnson" in result.stdout
+    assert "Bob Smith" in result.stdout
+
