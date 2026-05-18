@@ -1,0 +1,36 @@
+src/ms_teams_cli/application/use_cases/calendar/__init__.py
+  s_65e02cafb66802::t_b151e8af2fc8f7 1-8
+tests/application/use_cases/chats/test_send_message.py
+  s_1b59073b04b134::t_8066dffe3aeb91 34-62
+src/ms_teams_cli/application/use_cases/calendar/list_events.py
+  s_65e02cafb66802::t_4f4c2cb02e2619 1-16
+src/ms_teams_cli/application/use_cases/__init__.py
+  s_65e02cafb66802::t_20addec948568c 25
+  s_65e02cafb66802::t_da6f83b670945c 3
+src/ms_teams_cli/application/use_cases/chats/send_message.py
+  s_1b59073b04b134::t_b1d4d3acdc23ee 15-16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.9",
+  "base_commit_sha": "f010ece38d5be40cbeacde7b3c8f9d8d1c4aa4f2",
+  "prompts": {},
+  "sessions": {
+    "s_1b59073b04b134": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_1c559da11ffezHGZreYFYhfi4C",
+        "model": "unknown"
+      },
+      "human_author": "Sergio Bugallo Enjamio <sergiobe@inditex.com>"
+    },
+    "s_65e02cafb66802": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_1c5344211fferRisGd2zyWFb1R",
+        "model": "unknown"
+      },
+      "human_author": "Sergio Bugallo Enjamio <sergiobe@inditex.com>"
+    }
+  }
+}
