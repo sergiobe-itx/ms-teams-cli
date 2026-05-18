@@ -1,0 +1,51 @@
+src/ms_teams_cli/__init__.py
+  s_8848cbeb2f4e57::t_e8420696c6d1c9 15-16,20-21
+tests/test_cli_polish.py
+  s_8848cbeb2f4e57::t_265cb9606c4548 20
+  s_8848cbeb2f4e57::t_9d149aeffaf837 435,444,453,462-464,473,482-486,495
+  s_8848cbeb2f4e57::t_0693bb4992e4ce 504,513,525-527,537-540,552-556
+  s_8848cbeb2f4e57::t_826bea5403b75d 93,105,116,126,137,145
+  s_8848cbeb2f4e57::t_d04f2800da2a1c 644-648
+  s_8848cbeb2f4e57::t_b56250d6036748 82,87
+  s_8848cbeb2f4e57::t_6f4d236612a382 65-76
+tests/test_chats.py
+  s_8848cbeb2f4e57::t_8fb443dc7f5116 509,511-512
+  s_8848cbeb2f4e57::t_0bbdca747a01de 266,276-280,293
+  s_8848cbeb2f4e57::t_9bf66831dd76a4 10
+  s_8848cbeb2f4e57::t_502707249fd52b 122-124,159-161,169-171,194-196,367-369,405-407,439-441,470-472,537-539,548-550,565-567,575-577
+  s_8848cbeb2f4e57::t_798894aed1b382 522,524-525
+  s_8848cbeb2f4e57::t_971d4c77cd7ace 14
+  s_8848cbeb2f4e57::t_34322022caa00e 147-148,150
+  s_8848cbeb2f4e57::t_3c2c5ebb1fcf6a 492,494-495
+tests/test_channels.py
+  s_8848cbeb2f4e57::t_4524e691962a41 176,188,197,237,250,259,473,511,607,616,624,635,672,731,767,795,831
+  s_8848cbeb2f4e57::t_971d4c77cd7ace 14
+  s_8848cbeb2f4e57::t_3ee11e5f9eadc2 128-137
+  s_8848cbeb2f4e57::t_8790329e658e42 540
+  s_8848cbeb2f4e57::t_dc1130e2f02f7b 309
+  s_8848cbeb2f4e57::t_6f2c4c5f42efe4 337,361
+  s_8848cbeb2f4e57::t_9ef886796b8921 11
+  s_8848cbeb2f4e57::t_22908beeee4663 285
+  s_8848cbeb2f4e57::t_9c094922dd6e44 148-149,160-161
+  s_8848cbeb2f4e57::t_a2c4faf36fc658 405
+src/ms_teams_cli/presentation/cli.py
+  s_8848cbeb2f4e57::t_26802d5f4d0294 96,100,121,125,162,166,205,209,243,247,284,288,396,408,433,445,473,477,496,499,526
+src/ms_teams_cli/presentation/dependencies.py
+  s_8848cbeb2f4e57::t_a8b88feb05a7b6 1-81
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.9",
+  "base_commit_sha": "84cf5041f9a85ce99fec406c5de72b0b81489d9a",
+  "prompts": {},
+  "sessions": {
+    "s_8848cbeb2f4e57": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_1c57b7e1bffegf78rXS24nZdo6",
+        "model": "unknown"
+      },
+      "human_author": "Sergio Bugallo Enjamio <sergiobe@inditex.com>"
+    }
+  }
+}
