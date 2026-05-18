@@ -1,0 +1,61 @@
+src/ms_teams_cli/infrastructure/__init__.py
+  s_301801f20be9b4::t_5b416a40c7f9e1 1-18
+src/ms_teams_cli/infrastructure/auth/az_provider.py
+  s_301801f20be9b4::t_8efc590f693c47 1-111
+tests/test_channels.py
+  s_301801f20be9b4::t_0ad7e5f99291fe 11-12,22
+  s_301801f20be9b4::t_e2096879cb55a4 13
+src/ms_teams_cli/infrastructure/auth/__init__.py
+  s_301801f20be9b4::t_e0db7b80063db3 6-10,17
+  s_301801f20be9b4::t_ccc457eb87d8a9 1-5,11-16,18
+tests/test_auth.py
+  s_301801f20be9b4::t_bfe25aa468bc72 30,44,53
+  s_301801f20be9b4::t_22a704051fbbc6 65
+  s_301801f20be9b4::t_e2096879cb55a4 81,111,130,171
+  s_301801f20be9b4::t_51f3b7613045a0 96,118,153,176
+tests/test_graph_client.py
+  s_301801f20be9b4::t_98db337403b086 10
+tests/test_chats.py
+  s_301801f20be9b4::t_116d8b725ddc2c 10-11,22
+  s_301801f20be9b4::t_e2096879cb55a4 12
+src/ms_teams_cli/infrastructure/chat/__init__.py
+  s_301801f20be9b4::t_7a35d8bc9b2858 1-4
+tests/test_chat_client.py
+  s_301801f20be9b4::t_3007a14ac89a62 9
+src/ms_teams_cli/presentation/cli.py
+  s_301801f20be9b4::t_e2096879cb55a4 97-98,128-129,175-176,224-225,268-269,315-316,390,433-434,476-477,522-523,551-552
+src/ms_teams_cli/infrastructure/graph/client.py
+  s_301801f20be9b4::t_57cd5df4e3283e 1-113
+src/ms_teams_cli/application/chats.py
+  s_301801f20be9b4::t_f6d1d6d73ef1b3 10
+src/ms_teams_cli/infrastructure/auth/token_cache.py
+  s_301801f20be9b4::t_660dc4bc00d426 1-99
+src/ms_teams_cli/infrastructure/chat/client.py
+  s_301801f20be9b4::t_25d5d5f1c84e23 1-97
+src/ms_teams_cli/application/channels.py
+  s_301801f20be9b4::t_fd15180c478327 20
+tests/test_cli_polish.py
+  s_301801f20be9b4::t_b44a723870b91b 17,20
+  s_301801f20be9b4::t_8ba5cfbd7361b9 555,558
+  s_301801f20be9b4::t_e2096879cb55a4 18
+  s_301801f20be9b4::t_f23c431d5b536d 556,559,574,576,589,591,612,614,643,645,647,657,659,661
+  s_301801f20be9b4::t_e9894cf05d2ca1 16,19
+src/ms_teams_cli/infrastructure/graph/__init__.py
+  s_301801f20be9b4::t_f38d24d96e6123 1-4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.9",
+  "base_commit_sha": "d1a8e45d4b15b380a99e32e93cdef31b24c6fe58",
+  "prompts": {},
+  "sessions": {
+    "s_301801f20be9b4": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_1c58c9854ffeGoQPNvXTGPgsed",
+        "model": "unknown"
+      },
+      "human_author": "Sergio Bugallo Enjamio <sergiobe@inditex.com>"
+    }
+  }
+}
