@@ -407,3 +407,86 @@ def chats_command(
         return
 
     format_chats_table(chats)
+
+
+@app.command("unread")
+def unread_command(
+    chat_type: Annotated[
+        str | None,
+        typer.Option("--type", help="Filter by chat type: group|1:1|meeting|other"),  # pyright: ignore[reportUnknownMemberType]
+    ] = None,
+    json_output: Annotated[
+        bool,
+        typer.Option("--json", help="Output as JSON"),  # pyright: ignore[reportUnknownMemberType]
+    ] = False,
+) -> None:
+    """List chats with unread messages."""
+    from ms_teams_cli.application.chats import ChatService
+    from ms_teams_cli.domain.models import ChatType
+    from ms_teams_cli.infrastructure.az_provider import AzChatTokenProvider
+    from ms_teams_cli.infrastructure.chat_client import ChatServiceClient
+    from ms_teams_cli.infrastructure.token_cache import ChatTokenCache
+    from ms_teams_cli.presentation.formatters import format_json, format_unread_table
+
+    resolved_type: ChatType | None = None
+    if chat_type is not None:
+        try:
+            resolved_type = ChatType(chat_type)
+        except ValueError as exc:
+            typer.echo(f"Invalid chat type: {chat_type}", err=True)
+            raise typer.Exit(code=1) from exc
+
+    try:
+        cache = ChatTokenCache()
+        provider = AzChatTokenProvider(cache=cache)
+        client = ChatServiceClient(token_provider=provider)
+        service = ChatService(chat_client=client)
+        chats = service.list_unread(chat_type=resolved_type)
+    except TeamsError as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(code=1) from exc
+
+    if json_output:
+        format_json(chats)
+        return
+
+    format_unread_table(chats)
+
+
+@app.command("chat-messages")
+def chat_messages_command(
+    chat_id: Annotated[
+        str,
+        typer.Option("--chat", help="Conversation ID"),  # pyright: ignore[reportUnknownMemberType]
+    ],
+    top: Annotated[
+        int,
+        typer.Option("--top", help="Number of messages to fetch"),  # pyright: ignore[reportUnknownMemberType]
+    ] = 30,
+    json_output: Annotated[
+        bool,
+        typer.Option("--json", help="Output as JSON"),  # pyright: ignore[reportUnknownMemberType]
+    ] = False,
+) -> None:
+    """Show messages from a chat conversation."""
+    from ms_teams_cli.application.chats import ChatService
+    from ms_teams_cli.infrastructure.az_provider import AzChatTokenProvider
+    from ms_teams_cli.infrastructure.chat_client import ChatServiceClient
+    from ms_teams_cli.infrastructure.token_cache import ChatTokenCache
+    from ms_teams_cli.presentation.formatters import format_chat_messages_table, format_json
+
+    try:
+        cache = ChatTokenCache()
+        provider = AzChatTokenProvider(cache=cache)
+        client = ChatServiceClient(token_provider=provider)
+        service = ChatService(chat_client=client)
+        messages = service.get_messages(chat_id=chat_id, top=top)
+    except TeamsError as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(code=1) from exc
+
+    if json_output:
+        format_json(messages)
+        return
+
+    format_chat_messages_table(messages)

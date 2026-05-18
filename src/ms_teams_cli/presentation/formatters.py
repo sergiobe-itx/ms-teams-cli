@@ -11,7 +11,14 @@ from rich.table import Table
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
-    from ms_teams_cli.domain.models import Channel, ChannelMessage, Chat, ScanResult, Team
+    from ms_teams_cli.domain.models import (
+        Channel,
+        ChannelMessage,
+        Chat,
+        ChatMessage,
+        ScanResult,
+        Team,
+    )
 
 
 @runtime_checkable
@@ -273,3 +280,71 @@ def format_chats_table(chats: list[Chat]) -> None:
             )
             print(row)
     print(f"\n{len(chats)} conversations.")
+
+
+def format_unread_table(chats: list[Chat]) -> None:
+    """Print unread chats as table."""
+    from ms_teams_cli.domain.text import format_datetime
+
+    if not chats:
+        print("No unread chats.")
+        return
+
+    if _is_tty():
+        console = Console()
+        table = Table(title="Unread Chats", show_header=True, header_style="bold cyan")
+        table.add_column("Type", style="magenta", min_width=10)
+        table.add_column("Name", style="green", min_width=30)
+        table.add_column("Last message", style="dim", min_width=16)
+        table.add_column("Preview")
+        for chat in chats:
+            table.add_row(
+                chat.chat_type.value,
+                chat.display_name,
+                format_datetime(chat.last_message_time or ""),
+                chat.last_message_preview or "",
+            )
+        console.print(table)
+    else:
+        print(f"{'TYPE':<10} {'NAME':<50} {'LAST MESSAGE':<20} PREVIEW")
+        print("-" * 120)
+        for chat in chats:
+            row = (
+                f"{chat.chat_type.value:<10} {chat.display_name[:48]:<50} "
+                f"{format_datetime(chat.last_message_time or ''):<20} "
+                f"{(chat.last_message_preview or '')[:50]}"
+            )
+            print(row)
+    print(f"\n{len(chats)} unread conversations.")
+
+
+def format_chat_messages_table(messages: list[ChatMessage]) -> None:
+    """Print chat messages as table."""
+    from ms_teams_cli.domain.text import format_datetime, strip_html
+
+    if not messages:
+        print("No messages found.")
+        return
+
+    if _is_tty():
+        console = Console()
+        table = Table(show_header=True, header_style="bold cyan")
+        table.add_column("When", style="dim", min_width=16)
+        table.add_column("From", style="green", min_width=20)
+        table.add_column("Message")
+        for msg in messages:
+            preview = strip_html(msg.content)[:100]
+            table.add_row(
+                format_datetime(msg.compose_time),
+                msg.sender_name,
+                preview,
+            )
+        console.print(table)
+    else:
+        print(f"{'WHEN':<20} {'FROM':<25} MESSAGE")
+        print("-" * 100)
+        for msg in messages:
+            preview = strip_html(msg.content)[:80]
+            row = f"{format_datetime(msg.compose_time):<20} {msg.sender_name:<25} {preview}"
+            print(row)
+    print(f"\n{len(messages)} messages.")

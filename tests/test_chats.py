@@ -13,7 +13,7 @@ import ms_teams_cli.infrastructure.token_cache as token_cache_module
 import ms_teams_cli.presentation.cli as cli_module
 import ms_teams_cli.presentation.formatters as formatters_module
 from ms_teams_cli.application.chats import ChatService
-from ms_teams_cli.domain.chat_classifier import classify_chat
+from ms_teams_cli.domain.chat_classifier import classify_chat, is_unread
 from ms_teams_cli.domain.chat_display import resolve_display_name
 from ms_teams_cli.domain.models import Chat, ChatType
 
@@ -295,3 +295,188 @@ def test_chats_cli_invalid_type(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert result.exit_code == 1
     assert "Invalid chat type: bogus" in result.stderr
+
+
+def test_is_unread_newer_id_than_horizon() -> None:
+    conv: dict[str, object] = {
+        "lastMessage": {"id": "200"},
+        "properties": {"consumptionhorizon": "100;x;x"},
+    }
+    assert is_unread(conv) is True
+
+
+def test_is_unread_older_id_than_horizon() -> None:
+    conv: dict[str, object] = {
+        "lastMessage": {"id": "100"},
+        "properties": {"consumptionhorizon": "200;x;x"},
+    }
+    assert is_unread(conv) is False
+
+
+def test_is_unread_no_horizon() -> None:
+    conv: dict[str, object] = {
+        "lastMessage": {"id": "500"},
+        "properties": {},
+    }
+    assert is_unread(conv) is True
+
+
+def test_is_unread_no_last_message() -> None:
+    conv: dict[str, object] = {
+        "properties": {"consumptionhorizon": "100;x;x"},
+    }
+    assert is_unread(conv) is False
+
+
+def test_is_unread_unparseable_horizon() -> None:
+    conv: dict[str, object] = {
+        "lastMessage": {"id": "300"},
+        "properties": {"consumptionhorizon": "not;numbers;here"},
+    }
+    assert is_unread(conv) is True
+
+
+def test_list_unread_filters_unread() -> None:
+    client = FakeChatClient(
+        {
+            "conversations": [
+                {
+                    "id": "19:a@thread.v2",
+                    "threadProperties": {"topic": "Unread 1"},
+                    "lastMessage": {"id": "200"},
+                    "properties": {"consumptionhorizon": "100;x;x"},
+                },
+                {
+                    "id": "19:b@thread.v2",
+                    "threadProperties": {"topic": "Read"},
+                    "lastMessage": {"id": "50"},
+                    "properties": {"consumptionhorizon": "200;x;x"},
+                },
+                {
+                    "id": "19:c@unq.gbl.spaces",
+                    "lastMessage": {"id": "999", "imdisplayname": "Alice"},
+                    "properties": {},
+                },
+            ]
+        }
+    )
+
+    chats = ChatService(
+        chat_client=cast("ChatServiceClient", cast("object", client))
+    ).list_unread()
+
+    assert len(chats) == 2
+
+
+def test_list_unread_filters_by_type() -> None:
+    client = FakeChatClient(
+        {
+            "conversations": [
+                {
+                    "id": "19:g1@thread.v2",
+                    "threadProperties": {"topic": "Group1"},
+                    "lastMessage": {"id": "200"},
+                    "properties": {"consumptionhorizon": "100;x;x"},
+                },
+                {
+                    "id": "19:g2@thread.tacv2",
+                    "threadProperties": {"topic": "Group2"},
+                    "lastMessage": {"id": "200"},
+                    "properties": {"consumptionhorizon": "100;x;x"},
+                },
+                {
+                    "id": "19:p1@unq.gbl.spaces",
+                    "lastMessage": {"id": "500", "imdisplayname": "Bob"},
+                    "properties": {},
+                },
+                {
+                    "id": "19:meeting_1@thread.v2",
+                    "threadProperties": {"topic": "Standup"},
+                    "lastMessage": {"id": "300"},
+                    "properties": {"consumptionhorizon": "100;x;x"},
+                },
+            ]
+        }
+    )
+
+    chats = ChatService(
+        chat_client=cast("ChatServiceClient", cast("object", client))
+    ).list_unread(chat_type=ChatType.GROUP)
+
+    assert len(chats) == 2
+    assert all(chat.chat_type == ChatType.GROUP for chat in chats)
+
+
+def test_get_messages_returns_chronological_order() -> None:
+    client = FakeChatClient({})
+    chat_id = "19:abc@thread.v2"
+    client.responses[
+        f"https://chat.example.test/v1/users/ME/conversations/{chat_id}/messages?pageSize=30"
+    ] = {
+        "messages": [
+            {
+                "id": "4", "composetime": "2026-01-04T00:00:00Z",
+                "imdisplayname": "D", "content": "d", "messagetype": "Text",
+            },
+            {
+                "id": "3", "composetime": "2026-01-03T00:00:00Z",
+                "imdisplayname": "C", "content": "c", "messagetype": "Text",
+            },
+            {
+                "id": "2", "composetime": "2026-01-02T00:00:00Z",
+                "imdisplayname": "B", "content": "b", "messagetype": "RichText",
+            },
+            {
+                "id": "1", "composetime": "2026-01-01T00:00:00Z",
+                "imdisplayname": "A", "content": "a", "messagetype": "Text",
+            },
+        ]
+    }
+
+    messages = ChatService(
+        chat_client=cast("ChatServiceClient", cast("object", client))
+    ).get_messages(chat_id=chat_id)
+
+    assert [m.id for m in messages] == ["1", "2", "3", "4"]
+
+
+def test_get_messages_filters_to_user_types() -> None:
+    client = FakeChatClient({})
+    chat_id = "19:abc@thread.v2"
+    client.responses[
+        f"https://chat.example.test/v1/users/ME/conversations/{chat_id}/messages?pageSize=30"
+    ] = {
+        "messages": [
+            {"id": "1", "messagetype": "Text", "imdisplayname": "A", "content": "hi"},
+            {"id": "2", "messagetype": "RichText", "imdisplayname": "B", "content": "hey"},
+            {
+                "id": "3", "messagetype": "RichText/Html",
+                "imdisplayname": "C", "content": "<b>ok</b>",
+            },
+            {"id": "4", "messagetype": "ThreadActivity/AddMember", "content": ""},
+            {"id": "5", "messagetype": "Text", "imdisplayname": "D", "content": "sup"},
+            {"id": "6", "messagetype": "Control/Typing", "content": ""},
+            {"id": "7", "messagetype": "Text", "imdisplayname": "E", "content": "yo"},
+            {
+                "id": "8", "messagetype": "RichText/Html",
+                "imdisplayname": "F", "content": "<i>bye</i>",
+            },
+        ]
+    }
+
+    messages = ChatService(
+        chat_client=cast("ChatServiceClient", cast("object", client))
+    ).get_messages(chat_id=chat_id)
+
+    assert len(messages) == 6
+    assert all(m.message_type in {"Text", "RichText", "RichText/Html"} for m in messages)
+
+
+def test_chat_messages_cli_help() -> None:
+    result = runner.invoke(app, ["chat-messages", "--help"])
+    assert result.exit_code == 0
+
+
+def test_unread_cli_help() -> None:
+    result = runner.invoke(app, ["unread", "--help"])
+    assert result.exit_code == 0
