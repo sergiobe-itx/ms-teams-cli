@@ -14,9 +14,10 @@ from typer.testing import CliRunner
 import ms_teams_cli.infrastructure.auth as auth_module
 import ms_teams_cli.infrastructure.auth.az_provider as az_provider_module
 import ms_teams_cli.infrastructure.auth.token_cache as token_cache_module
-import ms_teams_cli.presentation.cli as cli_module
+import ms_teams_cli.presentation.cli._app as cli_module
+import ms_teams_cli.presentation.cli.chats as cli_chats_module
 import ms_teams_cli.presentation.dependencies as deps_module
-import ms_teams_cli.presentation.formatters as formatters_module
+import ms_teams_cli.presentation.cli.formatters as formatters_module
 from ms_teams_cli import (
     APIError,
     AuthenticationError,
@@ -327,12 +328,6 @@ def test_package_public_api_exports() -> None:
     assert ChatMessage is not None
     assert ScanResult is not None
 
-
-def test_cli_main_guard_is_last_line() -> None:
-    content = Path(cli_module.__file__).read_text(encoding="utf-8").strip().splitlines()
-
-    assert content[-2] == 'if __name__ == "__main__":'
-    assert content[-1] == "    app()"
 
 
 # === Channel CLI commands ===
@@ -701,7 +696,7 @@ def test_send_message_command_cancel(
     monkeypatch.setattr("sys.stdin.isatty", lambda: True)
     monkeypatch.setattr(typer, "prompt", _decline_prompt)
 
-    cli_module.send_message_command(chat_id="19:g1@thread.v2", message="hello")
+    cli_chats_module.send_message_command(chat_id="19:g1@thread.v2", message="hello")
 
     assert "Cancelled — message NOT sent." in capsys.readouterr().out
 

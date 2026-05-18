@@ -16,7 +16,7 @@ from ms_teams_cli.domain.entities import (
     Team,
     ThreadActivity,
 )
-from ms_teams_cli.presentation import formatters
+from ms_teams_cli.presentation.cli import formatters
 
 if TYPE_CHECKING:
     import pytest

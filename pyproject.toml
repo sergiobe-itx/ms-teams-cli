@@ -20,7 +20,7 @@ dependencies = [
 
 [project.scripts]
 ms-teams = "ms_teams_cli.presentation.cli:app"
-ms-teams-mcp = "ms_teams_cli.mcp_server:main"
+ms-teams-mcp = "ms_teams_cli.presentation.mcp:main"
 
 [dependency-groups]
 dev = [

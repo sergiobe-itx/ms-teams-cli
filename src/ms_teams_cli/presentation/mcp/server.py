@@ -7,7 +7,6 @@ from mcp.server.fastmcp import FastMCP  # pyright: ignore[reportMissingModuleSou
 
 from ms_teams_cli.domain.entities import ChatType
 from ms_teams_cli.domain.exceptions import TeamsError
-from ms_teams_cli.mcp_config import is_chat_allowed
 from ms_teams_cli.presentation.dependencies import (
     get_chat_messages,
     get_find_unanswered,
@@ -22,6 +21,7 @@ from ms_teams_cli.presentation.dependencies import (
     get_scan_activity,
     get_send_message,
 )
+from ms_teams_cli.presentation.mcp.config import is_chat_allowed
 
 mcp: FastMCP = FastMCP("ms-teams", json_response=True)  # pyright: ignore[reportUnknownVariableType]
 
