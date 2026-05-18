@@ -1,6 +1,7 @@
 """Domain models for ms-teams-cli."""
 from __future__ import annotations
 
+from enum import StrEnum
 from typing import ClassVar, cast
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -106,3 +107,24 @@ class ScanResult(BaseModel):
 
     date: str
     channels: list[ChannelActivity]
+
+
+class ChatType(StrEnum):
+    """Classification of a Teams chat conversation."""
+
+    ONE_TO_ONE = "1:1"
+    GROUP = "group"
+    MEETING = "meeting"
+    OTHER = "other"
+
+
+class Chat(BaseModel):
+    """A Teams chat conversation."""
+
+    model_config: ClassVar[ConfigDict] = ConfigDict(populate_by_name=True)
+
+    id: str
+    chat_type: ChatType
+    display_name: str
+    last_message_preview: str | None = None
+    last_message_time: str | None = None

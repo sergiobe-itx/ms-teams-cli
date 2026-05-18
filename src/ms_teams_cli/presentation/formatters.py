@@ -11,7 +11,7 @@ from rich.table import Table
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
-    from ms_teams_cli.domain.models import Channel, ChannelMessage, ScanResult, Team
+    from ms_teams_cli.domain.models import Channel, ChannelMessage, Chat, ScanResult, Team
 
 
 @runtime_checkable
@@ -193,11 +193,11 @@ def format_unanswered_table(messages: list[ChannelMessage], minutes: int) -> Non
         print("-" * 90)
         for msg in messages:
             preview = strip_html(msg.body.content)[:60]
-            print(
+            row = (
                 f"{msg.author.display_name:<25} "
-                f"{format_datetime(msg.created_date_time):<20} "
-                f"{preview}"
+                f"{format_datetime(msg.created_date_time):<20} {preview}"
             )
+            print(row)
     print(f"\n{len(messages)} unanswered posts (window: last {minutes} min).")
 
 
@@ -237,3 +237,39 @@ def format_scan_result(result: ScanResult) -> None:
     print("=" * 64)
     print(f"TOTAL {result.date}: {total_posts} new posts | {total_replies} replies")
     print(f"Active channels: {len(result.channels)}")
+
+
+def format_chats_table(chats: list[Chat]) -> None:
+    """Print chats as table."""
+    from ms_teams_cli.domain.text import format_datetime
+
+    if not chats:
+        print("No chats found.")
+        return
+
+    if _is_tty():
+        console = Console()
+        table = Table(title="Chats", show_header=True, header_style="bold cyan")
+        table.add_column("Type", style="magenta", min_width=10)
+        table.add_column("Name", style="green", min_width=30)
+        table.add_column("Last message", style="dim", min_width=16)
+        table.add_column("Preview")
+        for chat in chats:
+            table.add_row(
+                chat.chat_type.value,
+                chat.display_name,
+                format_datetime(chat.last_message_time or ""),
+                chat.last_message_preview or "",
+            )
+        console.print(table)
+    else:
+        print(f"{'TYPE':<10} {'NAME':<50} {'LAST MESSAGE':<20} PREVIEW")
+        print("-" * 120)
+        for chat in chats:
+            row = (
+                f"{chat.chat_type.value:<10} {chat.display_name[:48]:<50} "
+                f"{format_datetime(chat.last_message_time or ''):<20} "
+                f"{(chat.last_message_preview or '')[:50]}"
+            )
+            print(row)
+    print(f"\n{len(chats)} conversations.")

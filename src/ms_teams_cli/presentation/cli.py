@@ -1,7 +1,8 @@
 """CLI entry point for ms-teams."""
 from __future__ import annotations
 
-from typing import Annotated
+import json
+from typing import Annotated, cast
 
 import typer
 
@@ -298,7 +299,7 @@ def parse_url_command(
 
     if url is None:
         if sys.stdin.isatty():
-            url = typer.prompt("Teams URL")
+            url = cast("str", typer.prompt("Teams URL"))
         else:
             typer.echo("Error: URL argument required when not in interactive mode", err=True)
             raise typer.Exit(code=1)
@@ -319,17 +320,16 @@ def parse_url_command(
             f"ms-teams messages --team {components.team_id} --channel {components.channel_id}"
         )
     if components.team_id and components.channel_id and components.message_id:
-        typer.echo(
-            f"ms-teams replies --team {components.team_id} "
-            f"--channel {components.channel_id} --thread {components.message_id}"
+        reply_command = (
+            f"ms-teams replies --team {components.team_id} --channel {components.channel_id} "
+            f"--thread {components.message_id}"
         )
+        typer.echo(reply_command)
 
 
 @app.command("token")
 def token_command() -> None:
     """Force token renewal and show expiry."""
-    import json
-
     from ms_teams_cli.domain.exceptions import TeamsError
     from ms_teams_cli.infrastructure.az_provider import AzGraphTokenProvider
     from ms_teams_cli.infrastructure.token_cache import TokenCache
@@ -337,14 +337,14 @@ def token_command() -> None:
     try:
         cache = TokenCache()
         provider = AzGraphTokenProvider(cache=cache)
-        provider.renew()
+        _ = provider.renew()
         cached = cache.load()
         if cached is None:
             typer.echo("Error: Token cache is empty after renewal", err=True)
             raise typer.Exit(code=1)
 
         data = cache.path.read_text(encoding="utf-8")
-        token_data = json.loads(data)
+        token_data = cast("dict[str, object]", json.loads(data))
         expires_on = token_data.get("expiresOn", "")
         expiry_str = expires_on or "(unknown)"
 
@@ -359,3 +359,51 @@ def token_command() -> None:
 
 if __name__ == "__main__":
     app()
+
+
+@app.command("chats")
+def chats_command(
+    chat_type: Annotated[
+        str | None,
+        typer.Option("--type", help="Filter by chat type: group|1:1|meeting|other"),  # pyright: ignore[reportUnknownMemberType]
+    ] = None,
+    top: Annotated[
+        int,
+        typer.Option("--top", help="Number of chats to fetch"),  # pyright: ignore[reportUnknownMemberType]
+    ] = 50,
+    json_output: Annotated[
+        bool,
+        typer.Option("--json", help="Output as JSON"),  # pyright: ignore[reportUnknownMemberType]
+    ] = False,
+) -> None:
+    """List chats from the Teams chat service."""
+    from ms_teams_cli.application.chats import ChatService
+    from ms_teams_cli.domain.models import ChatType
+    from ms_teams_cli.infrastructure.az_provider import AzChatTokenProvider
+    from ms_teams_cli.infrastructure.chat_client import ChatServiceClient
+    from ms_teams_cli.infrastructure.token_cache import ChatTokenCache
+    from ms_teams_cli.presentation.formatters import format_chats_table, format_json
+
+    resolved_type: ChatType | None = None
+    if chat_type is not None:
+        try:
+            resolved_type = ChatType(chat_type)
+        except ValueError as exc:
+            typer.echo(f"Invalid chat type: {chat_type}", err=True)
+            raise typer.Exit(code=1) from exc
+
+    try:
+        cache = ChatTokenCache()
+        provider = AzChatTokenProvider(cache=cache)
+        client = ChatServiceClient(token_provider=provider)
+        service = ChatService(chat_client=client)
+        chats = service.list_chats(top=top, chat_type=resolved_type)
+    except TeamsError as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(code=1) from exc
+
+    if json_output:
+        format_json(chats)
+        return
+
+    format_chats_table(chats)
