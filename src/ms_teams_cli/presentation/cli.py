@@ -53,5 +53,37 @@ def teams_command(
     format_teams_table(teams)
 
 
+@app.command("channels")
+def channels_command(
+    team_id: Annotated[str, typer.Option("--team", help="Team ID")],  # pyright: ignore[reportUnknownMemberType]
+    json_output: Annotated[
+        bool,
+        typer.Option("--json", help="Output as JSON"),  # pyright: ignore[reportUnknownMemberType]
+    ] = False,
+) -> None:
+    """List channels in a team."""
+    from ms_teams_cli.application.channels import ChannelService
+    from ms_teams_cli.infrastructure.az_provider import AzGraphTokenProvider
+    from ms_teams_cli.infrastructure.graph_client import GraphClient
+    from ms_teams_cli.infrastructure.token_cache import TokenCache
+    from ms_teams_cli.presentation.formatters import format_channels_table, format_json
+
+    try:
+        cache = TokenCache()
+        provider = AzGraphTokenProvider(cache=cache)
+        client = GraphClient(token_provider=provider)
+        service = ChannelService(graph_client=client)
+        channels = service.list_channels(team_id)
+    except TeamsError as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(code=1) from exc
+
+    if json_output:
+        format_json(channels)
+        return
+
+    format_channels_table(channels)
+
+
 if __name__ == "__main__":
     app()

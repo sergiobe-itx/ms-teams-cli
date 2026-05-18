@@ -9,7 +9,7 @@ from rich.console import Console
 from rich.table import Table
 
 if TYPE_CHECKING:
-    from ms_teams_cli.domain.models import Team
+    from ms_teams_cli.domain.models import Channel, Team
 
 
 @runtime_checkable
@@ -52,6 +52,28 @@ def format_teams_table(teams: list[Team]) -> None:
         for team in teams:
             print(f"{team.display_name:<45} {team.id:<38}")
     print(f"\n{len(teams)} teams.")
+
+
+def format_channels_table(channels: list[Channel]) -> None:
+    """Print channels as Rich table on TTY and plain text otherwise."""
+    if not channels:
+        print("No channels found.")
+        return
+
+    if _is_tty():
+        console = Console()
+        table = Table(title="Channels", show_header=True, header_style="bold cyan")
+        table.add_column("Name", style="green", min_width=40)
+        table.add_column("ID", style="dim", min_width=36)
+        for channel in channels:
+            table.add_row(channel.display_name, channel.id)
+        console.print(table)
+    else:
+        print(f"{'CHANNEL':<45} {'ID':<60}")
+        print("-" * 106)
+        for channel in channels:
+            print(f"{channel.display_name:<45} {channel.id:<60}")
+    print(f"\n{len(channels)} channels.")
 
 
 def format_json(data: object) -> None:

@@ -14,3 +14,13 @@ class Team(BaseModel):
     description: str | None = Field(default=None, alias="description")
 
     model_config: ClassVar[ConfigDict] = ConfigDict(populate_by_name=True)
+
+
+class Channel(BaseModel):
+    """A Microsoft Teams channel."""
+
+    id: str
+    display_name: str = Field(alias="displayName")
+    description: str | None = Field(default=None, alias="description")
+
+    model_config: ClassVar[ConfigDict] = ConfigDict(populate_by_name=True)
