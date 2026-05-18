@@ -1,0 +1,34 @@
+src/ms_teams_cli/presentation/dependencies.py
+  s_579b26251ed590::t_f12ec2bc0bd26d 42
+  s_579b26251ed590::t_4989a627106eb7 35-40
+  s_579b26251ed590::t_2de4b2f8022520 97
+  s_579b26251ed590::t_f94b50164e51a1 22,24
+src/ms_teams_cli/infrastructure/auth/chained_provider.py
+  s_73cdce916fb3c4::t_2086e2754a67d1 30-42
+src/ms_teams_cli/presentation/cli.py
+  s_579b26251ed590::t_011abdedb9b92a 371-380
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.9",
+  "base_commit_sha": "0261b3697846c38971da6f5396e05d4370ef6527",
+  "prompts": {},
+  "sessions": {
+    "s_579b26251ed590": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_1c503f9c2ffedQeLvfYvsl6E1N",
+        "model": "unknown"
+      },
+      "human_author": "Sergio Bugallo Enjamio <sergiobe@inditex.com>"
+    },
+    "s_73cdce916fb3c4": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_1c5037527ffePhTaUfirtBvO2D",
+        "model": "unknown"
+      },
+      "human_author": "Sergio Bugallo Enjamio <sergiobe@inditex.com>"
+    }
+  }
+}
