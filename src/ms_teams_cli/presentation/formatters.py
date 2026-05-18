@@ -109,7 +109,7 @@ def _print_empty_result(message: str = "No results found.") -> None:
 
 def format_messages_table(messages: Iterable[ChannelMessage]) -> None:
     """Print channel messages as a table (TTY) or plain text (non-TTY)."""
-    from ms_teams_cli.domain.text import format_datetime, strip_html
+    from ms_teams_cli.domain.services import format_datetime, strip_html
 
     count = 0
     if _is_tty():
@@ -155,7 +155,7 @@ def format_messages_table(messages: Iterable[ChannelMessage]) -> None:
 
 def format_thread(parent: ChannelMessage, replies: list[ChannelMessage]) -> None:
     """Display an original post with all its replies."""
-    from ms_teams_cli.domain.text import format_datetime, strip_html
+    from ms_teams_cli.domain.services import format_datetime, strip_html
 
     print("── ORIGINAL POST " + "─" * 44)
     print(f"From : {parent.author.display_name}")
@@ -174,7 +174,7 @@ def format_thread(parent: ChannelMessage, replies: list[ChannelMessage]) -> None
 
 def format_unanswered_table(messages: list[ChannelMessage], minutes: int) -> None:
     """Print unanswered messages as table."""
-    from ms_teams_cli.domain.text import format_datetime, strip_html
+    from ms_teams_cli.domain.services import format_datetime, strip_html
 
     if not messages:
         _print_empty_result(f"No unanswered posts in last {minutes} min.")
@@ -214,7 +214,7 @@ def format_unanswered_table(messages: list[ChannelMessage], minutes: int) -> Non
 
 def format_scan_result(result: ScanResult) -> None:
     """Print scan activity results with per-channel thread summaries."""
-    from ms_teams_cli.domain.text import format_datetime, strip_html
+    from ms_teams_cli.domain.services import format_datetime, strip_html
 
     if not result.channels:
         _print_empty_result(f"No activity found on {result.date}.")
@@ -252,7 +252,7 @@ def format_scan_result(result: ScanResult) -> None:
 
 def format_chats_table(chats: list[Chat]) -> None:
     """Print chats as table."""
-    from ms_teams_cli.domain.text import format_datetime
+    from ms_teams_cli.domain.services import format_datetime
 
     if not chats:
         _print_empty_result("No chats found.")
@@ -288,7 +288,7 @@ def format_chats_table(chats: list[Chat]) -> None:
 
 def format_unread_table(chats: list[Chat]) -> None:
     """Print unread chats as table."""
-    from ms_teams_cli.domain.text import format_datetime
+    from ms_teams_cli.domain.services import format_datetime
 
     if not chats:
         _print_empty_result("No unread chats.")
@@ -324,7 +324,7 @@ def format_unread_table(chats: list[Chat]) -> None:
 
 def format_chat_messages_table(messages: list[ChatMessage]) -> None:
     """Print chat messages as table."""
-    from ms_teams_cli.domain.text import format_datetime, strip_html
+    from ms_teams_cli.domain.services import format_datetime, strip_html
 
     if not messages:
         _print_empty_result("No messages found.")

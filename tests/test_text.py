@@ -1,7 +1,7 @@
 """Tests for text utility functions."""
 from __future__ import annotations
 
-from ms_teams_cli.domain.text import format_datetime, strip_html
+from ms_teams_cli.domain.services import format_datetime, strip_html
 
 
 def test_strip_html_removes_tags() -> None:

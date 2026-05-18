@@ -1,7 +1,7 @@
 """Tests for URL parser."""
 from __future__ import annotations
 
-from ms_teams_cli.domain.url_parser import TeamsUrlComponents, parse_teams_url
+from ms_teams_cli.domain.services import TeamsUrlComponents, parse_teams_url
 
 
 def test_parse_message_url_all_components() -> None:

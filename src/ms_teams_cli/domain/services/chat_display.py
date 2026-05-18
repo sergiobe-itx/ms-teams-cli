@@ -18,8 +18,8 @@ def resolve_display_name(
     chat_service_url: str,
 ) -> str:
     """Best-effort display name for a chat conversation."""
-    from ms_teams_cli.domain.chat_classifier import classify_chat
     from ms_teams_cli.domain.entities import ChatType
+    from ms_teams_cli.domain.services.chat_classifier import classify_chat
 
     thread_properties = _as_dict(conv.get("threadProperties"))
     topic = str(thread_properties.get("topic", ""))

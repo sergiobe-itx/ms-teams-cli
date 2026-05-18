@@ -3,10 +3,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, cast
 
-from ms_teams_cli.domain.chat_classifier import classify_chat, is_unread
-from ms_teams_cli.domain.chat_display import resolve_display_name
 from ms_teams_cli.domain.entities import Chat, ChatMessage, ChatType
-from ms_teams_cli.domain.text import strip_html
+from ms_teams_cli.domain.services import classify_chat, is_unread, resolve_display_name, strip_html
 
 if TYPE_CHECKING:
     from ms_teams_cli.infrastructure.chat_client import ChatServiceClient

@@ -357,7 +357,7 @@ def parse_url_command(
     """Parse a Teams URL and extract IDs."""
     import sys
 
-    from ms_teams_cli.domain.url_parser import parse_teams_url
+    from ms_teams_cli.domain.services import parse_teams_url
 
     if url is None:
         if sys.stdin.isatty():

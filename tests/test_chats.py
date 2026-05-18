@@ -13,9 +13,8 @@ import ms_teams_cli.infrastructure.token_cache as token_cache_module
 import ms_teams_cli.presentation.cli as cli_module
 import ms_teams_cli.presentation.formatters as formatters_module
 from ms_teams_cli.application.chats import ChatService
-from ms_teams_cli.domain.chat_classifier import classify_chat, is_unread
-from ms_teams_cli.domain.chat_display import resolve_display_name
 from ms_teams_cli.domain.entities import Chat, ChatType
+from ms_teams_cli.domain.services import classify_chat, is_unread, resolve_display_name
 
 if TYPE_CHECKING:
     import pytest
