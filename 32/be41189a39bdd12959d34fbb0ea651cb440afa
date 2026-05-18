@@ -1,0 +1,73 @@
+src/ms_teams_cli/presentation/cli.py
+  s_1aa449eed44c48::t_fcc6b87309602f 88-141
+.sisyphus/evidence/task-5-pagination-limit.txt
+  s_1aa449eed44c48::t_5f953ba1cb0a05 1-11
+src/ms_teams_cli/domain/models.py
+  s_1aa449eed44c48::t_5e5a641a820d8c 66,70,74-76
+  s_1aa449eed44c48::t_fcc6b87309602f 6,27-64,77-79
+  s_1aa449eed44c48::t_6d2538fc0d3ad9 4,65,67-69,71-73
+src/ms_teams_cli/domain/text.py
+  s_1aa449eed44c48::t_fcc6b87309602f 1-27
+.sisyphus/notepads/library-redesign/learnings.md
+  ai_agent 40-44
+  s_f03af850dd6f2e::t_a383805e5172c3 45-49
+  s_167c8279929546::t_3803b3aa803b4f 50-84
+  s_1aa449eed44c48::t_5f953ba1cb0a05 85-90
+  s_33bb91c5e9a2cb::t_46e9bbdcd85301 1-39
+tests/test_text.py
+  s_1aa449eed44c48::t_4edb7011ee98d6 1-40
+tests/test_channels.py
+  s_1aa449eed44c48::t_6d2538fc0d3ad9 16,73,154,216,229,360-361,369-370
+  s_1aa449eed44c48::t_4edb7011ee98d6 32,38-44,64-65,76-93,161-215,217-228,230-234,353-359,362-368,371-409
+src/ms_teams_cli/application/channels.py
+  s_1aa449eed44c48::t_5e5a641a820d8c 9-10
+  s_1aa449eed44c48::t_fcc6b87309602f 6,15,59-73
+.sisyphus/evidence/task-5-messages-model.txt
+  s_1aa449eed44c48::t_5f953ba1cb0a05 1-12
+src/ms_teams_cli/presentation/formatters.py
+  s_1aa449eed44c48::t_fcc6b87309602f 14,97-131,133,136,138-142
+  s_1aa449eed44c48::t_5e5a641a820d8c 12-13
+  s_1aa449eed44c48::t_6d2538fc0d3ad9 132,134-135,137
+.sisyphus/evidence/task-5-strip-html.txt
+  s_1aa449eed44c48::t_5f953ba1cb0a05 1-18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.9",
+  "base_commit_sha": "32be41189a39bdd12959d34fbb0ea651cb440afa",
+  "prompts": {},
+  "sessions": {
+    "s_167c8279929546": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_1c5f4f1dbffe05P6t82pkC8fMN",
+        "model": "unknown"
+      },
+      "human_author": "Sergio Bugallo Enjamio <sergiobe@inditex.com>"
+    },
+    "s_1aa449eed44c48": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_1c5f4f1dbffe05P6t82pkC8fMN",
+        "model": "gpt-5.4"
+      },
+      "human_author": "Sergio Bugallo Enjamio <sergiobe@inditex.com>"
+    },
+    "s_33bb91c5e9a2cb": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_1c60f2b92ffeHDhLjBdd3PBgeF",
+        "model": "unknown"
+      },
+      "human_author": "Sergio Bugallo Enjamio <sergiobe@inditex.com>"
+    },
+    "s_f03af850dd6f2e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_1c6351f7affe3SQB00GcfVLJVr",
+        "model": "unknown"
+      },
+      "human_author": "Sergio Bugallo Enjamio <sergiobe@inditex.com>"
+    }
+  }
+}
