@@ -80,6 +80,40 @@ class GraphClient:
             return cast("dict[str, object]", data)
         return {"value": data}
 
+    def post(self, url: str, body: dict[str, object]) -> dict[str, object]:
+        """POST to url with Bearer token, retry once on 401 with renewed token."""
+        token = self._provider.get_token()
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        }
+        with httpx.Client(timeout=20) as client:
+            response = client.post(url, json=body, headers=headers)
+            if response.status_code == 401:
+                token = self._provider.renew()
+                headers["Authorization"] = f"Bearer {token}"
+                response = client.post(url, json=body, headers=headers)
+
+        if not response.is_success:
+            err_msg = ""
+            try:
+                err_msg = _extract_error_message(cast("object", response.json()))
+            except Exception:
+                err_msg = ""
+            raise GraphAPIError(
+                f"Graph API POST HTTP {response.status_code} — {err_msg}",
+                status_code=response.status_code,
+                url=url,
+            )
+
+        if not response.content:
+            return {}
+        data = cast("object", response.json())
+        if isinstance(data, dict):
+            return cast("dict[str, object]", data)
+        return {"value": data}
+
     def paginate(
         self,
         url: str,
