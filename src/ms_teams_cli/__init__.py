@@ -12,20 +12,17 @@ from ms_teams_cli.domain.entities import (
     Team,
 )
 from ms_teams_cli.domain.exceptions import APIError, AuthenticationError, TeamsError
-from ms_teams_cli.infrastructure.chat import ChatServiceRepository
 from ms_teams_cli.infrastructure.graph import GraphChannelRepository
 
 __version__ = "0.1.0"
 
 ChannelService = GraphChannelRepository
-ChatService = ChatServiceRepository
 
 logger.disable("ms_teams_cli")
 
 __all__ = [
     "__version__",
     "ChannelService",
-    "ChatService",
     "TeamsError",
     "AuthenticationError",
     "APIError",

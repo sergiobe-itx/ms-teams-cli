@@ -14,8 +14,6 @@ from typer.testing import CliRunner
 import ms_teams_cli.infrastructure.auth as auth_module
 import ms_teams_cli.infrastructure.auth.az_provider as az_provider_module
 import ms_teams_cli.infrastructure.auth.token_cache as token_cache_module
-import ms_teams_cli.infrastructure.chat as chat_module
-import ms_teams_cli.infrastructure.chat.client as chat_client_module
 import ms_teams_cli.presentation.cli as cli_module
 import ms_teams_cli.presentation.dependencies as deps_module
 import ms_teams_cli.presentation.formatters as formatters_module
@@ -27,7 +25,6 @@ from ms_teams_cli import (
     ChannelService,
     Chat,
     ChatMessage,
-    ChatService,
     ScanResult,
     Team,
     TeamsError,
@@ -307,7 +304,6 @@ def test_package_public_api_exports() -> None:
     expected = {
         "__version__",
         "ChannelService",
-        "ChatService",
         "TeamsError",
         "AuthenticationError",
         "APIError",
@@ -321,7 +317,6 @@ def test_package_public_api_exports() -> None:
 
     assert set(__all__) == expected
     assert ChannelService is not None
-    assert ChatService is not None
     assert TeamsError is not None
     assert AuthenticationError is not None
     assert APIError is not None
@@ -859,13 +854,6 @@ def test_scan_command_value_error(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_chats_command_invalid_type(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(token_cache_module, "ChatTokenCache", FakeChatTokenCache)
-    monkeypatch.setattr(auth_module, "ChatTokenCache", FakeChatTokenCache)
-    monkeypatch.setattr(az_provider_module, "AzChatTokenProvider", FakeChatTokenProvider)
-    monkeypatch.setattr(auth_module, "AzChatTokenProvider", FakeChatTokenProvider)
-    monkeypatch.setattr(chat_client_module, "ChatServiceClient", FakeChatClientFactory)
-    monkeypatch.setattr(chat_module, "ChatServiceClient", FakeChatClientFactory)
-
     result = runner.invoke(app, ["chats", "--type", "bad"])
 
     assert result.exit_code == 1
@@ -873,13 +861,6 @@ def test_chats_command_invalid_type(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_unread_command_invalid_type(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(token_cache_module, "ChatTokenCache", FakeChatTokenCache)
-    monkeypatch.setattr(auth_module, "ChatTokenCache", FakeChatTokenCache)
-    monkeypatch.setattr(az_provider_module, "AzChatTokenProvider", FakeChatTokenProvider)
-    monkeypatch.setattr(auth_module, "AzChatTokenProvider", FakeChatTokenProvider)
-    monkeypatch.setattr(chat_client_module, "ChatServiceClient", FakeChatClientFactory)
-    monkeypatch.setattr(chat_module, "ChatServiceClient", FakeChatClientFactory)
-
     result = runner.invoke(app, ["unread", "--type", "bad"])
 
     assert result.exit_code == 1
