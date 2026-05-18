@@ -40,9 +40,11 @@ class TeamsTyperGroup(TyperGroup):
                     **extra,
                 ),
             )
-        except KeyboardInterrupt as exc:
+        except SystemExit as exc:
+            if exc.code != 130:
+                raise
             typer.echo("Cancelled.", err=True)
-            raise typer.Exit(code=130) from exc
+            raise SystemExit(130) from exc
         except TeamsError as exc:
             typer.echo(str(exc), err=True)
             raise typer.Exit(code=1) from exc
@@ -64,7 +66,7 @@ def main(
             "--verbose",
             "-v",
             count=True,
-            help="Increase verbosity (-v INFO, -vv DEBUG)",
+            help="Increase verbosity (repeatable).",
         ),
     ] = 0,
 ) -> None:

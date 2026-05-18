@@ -3,8 +3,9 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING, override
+from typing import Final, override
 
+import pytest
 import typer
 from loguru import logger
 from typer.core import TyperGroup
@@ -14,7 +15,6 @@ import ms_teams_cli.application.channels as channels_module
 import ms_teams_cli.application.chats as chats_module
 import ms_teams_cli.infrastructure.az_provider as az_provider_module
 import ms_teams_cli.infrastructure.chat_client as chat_client_module
-import ms_teams_cli.infrastructure.graph_client as graph_client_module
 import ms_teams_cli.infrastructure.token_cache as token_cache_module
 import ms_teams_cli.presentation.cli as cli_module
 from ms_teams_cli import (
@@ -32,10 +32,6 @@ from ms_teams_cli import (
     __all__,
 )
 from ms_teams_cli.domain.models import ChatType, MessageAuthor, MessageBody
-
-if TYPE_CHECKING:
-    import pytest
-
 
 runner = CliRunner()
 app = cli_module.app
@@ -60,6 +56,95 @@ def _prompt_url(_text: str) -> str:
 def _decline_prompt(_text: str, default: str = "N") -> str:
     del default
     return "n"
+
+
+ARCHITECTURE_NAME: Final = "Architecture"
+
+
+def _empty_chats(self: object, top: int = 50, chat_type: object = None) -> list[Chat]:
+    del self, top, chat_type
+    return []
+
+
+def _empty_teams(self: channels_module.ChannelService) -> list[Team]:
+    del self
+    return []
+
+
+def _empty_channels(self: channels_module.ChannelService, team_id: str) -> list[Channel]:
+    del self, team_id
+    return []
+
+
+def _empty_channel_messages(
+    self: channels_module.ChannelService,
+    team_id: str,
+    channel_id: str,
+    top: int = 20,
+    pages: int = 1,
+    since: str | None = None,
+) -> list[ChannelMessage]:
+    del self, team_id, channel_id, top, pages, since
+    return []
+
+
+def _empty_thread(
+    self: channels_module.ChannelService,
+    team_id: str,
+    channel_id: str,
+    message_id: str,
+    top: int = 50,
+) -> tuple[ChannelMessage, list[ChannelMessage]]:
+    del self, team_id, channel_id, message_id, top
+    return _sample_channel_message(), []
+
+
+def _empty_unanswered(
+    self: channels_module.ChannelService,
+    team_id: str,
+    channel_id: str,
+    minutes: int = 120,
+) -> list[ChannelMessage]:
+    del self, team_id, channel_id, minutes
+    return []
+
+
+def _empty_scan_result(
+    self: channels_module.ChannelService,
+    team_id: str,
+    date: str,
+    pages: int = 2,
+    top: int = 50,
+) -> ScanResult:
+    del self, team_id, pages, top
+    return ScanResult(date=date, channels=[])
+
+
+def _empty_unread(
+    self: chats_module.ChatService,
+    chat_type: ChatType | None = None,
+) -> list[Chat]:
+    del self, chat_type
+    return []
+
+
+def _empty_chat_messages(
+    self: chats_module.ChatService,
+    chat_id: str,
+    top: int = 30,
+) -> list[ChatMessage]:
+    del self, chat_id, top
+    return []
+
+
+def _architecture_chat_name(self: object, chat_id: str) -> str:
+    del self, chat_id
+    return ARCHITECTURE_NAME
+
+
+def _sent_message_id(self: object, chat_id: str, message: str) -> str:
+    del self, chat_id, message
+    return "msg-123"
 
 
 class FakeTokenCache:
@@ -114,144 +199,6 @@ class FakeChatClientFactory:
 
     def __init__(self, token_provider: FakeChatTokenProvider) -> None:
         self.token_provider = token_provider
-
-
-class FakeChannelService:
-    teams: list[Team] = []
-    channels: list[Channel] = []
-    messages: list[ChannelMessage] = []
-    unanswered: list[ChannelMessage] = []
-    scan_result: ScanResult = ScanResult(date="2024-01-15", channels=[])
-    thread_parent: ChannelMessage = ChannelMessage(
-        id="m1",
-        createdDateTime="2024-01-15T14:30:00Z",
-        author=MessageAuthor(displayName="Alice"),
-        body=MessageBody(content="<p>Parent</p>", contentType="html"),
-        replyCount=0,
-        messageType="message",
-        replyToId=None,
-    )
-    thread_replies: list[ChannelMessage] = []
-    error: Exception | None = None
-    graph_client: FakeGraphClientFactory
-
-    def __init__(self, graph_client: FakeGraphClientFactory) -> None:
-        self.graph_client = graph_client
-
-    def list_teams(self) -> list[Team]:
-        if self.error is not None:
-            raise self.error
-        return self.teams
-
-    def list_channels(self, _team_id: str) -> list[Channel]:
-        if self.error is not None:
-            raise self.error
-        return self.channels
-
-    def get_messages(
-        self,
-        team_id: str,
-        channel_id: str,
-        top: int = 20,
-        pages: int = 1,
-        since: str | None = None,
-    ) -> list[ChannelMessage]:
-        del team_id, channel_id, top, pages, since
-        if self.error is not None:
-            raise self.error
-        return self.messages
-
-    def get_thread(
-        self,
-        team_id: str,
-        channel_id: str,
-        message_id: str,
-        top: int = 50,
-    ) -> tuple[ChannelMessage, list[ChannelMessage]]:
-        del team_id, channel_id, message_id, top
-        if self.error is not None:
-            raise self.error
-        return self.thread_parent, self.thread_replies
-
-    def find_unanswered(
-        self,
-        team_id: str,
-        channel_id: str,
-        minutes: int = 120,
-    ) -> list[ChannelMessage]:
-        del team_id, channel_id, minutes
-        if self.error is not None:
-            raise self.error
-        return self.unanswered
-
-    def scan_activity(
-        self,
-        team_id: str,
-        date: str,
-        pages: int = 2,
-        top: int = 50,
-    ) -> ScanResult:
-        del team_id, date, pages, top
-        if self.error is not None:
-            raise self.error
-        return self.scan_result
-
-
-class FakeChatService:
-    chats: list[Chat] = []
-    unread: list[Chat] = []
-    messages: list[ChatMessage] = []
-    chat_name: str = "Architecture"
-    sent_id: str = "msg-1"
-    error: Exception | None = None
-    chat_client: FakeChatClientFactory
-
-    def __init__(self, chat_client: FakeChatClientFactory) -> None:
-        self.chat_client = chat_client
-
-    def list_chats(self, top: int = 50, chat_type: ChatType | None = None) -> list[Chat]:
-        del top, chat_type
-        if self.error is not None:
-            raise self.error
-        return self.chats
-
-    def list_unread(self, chat_type: ChatType | None = None) -> list[Chat]:
-        del chat_type
-        if self.error is not None:
-            raise self.error
-        return self.unread
-
-    def get_messages(self, chat_id: str, top: int = 30) -> list[ChatMessage]:
-        del chat_id, top
-        if self.error is not None:
-            raise self.error
-        return self.messages
-
-    def resolve_chat_name(self, chat_id: str) -> str:
-        del chat_id
-        if self.error is not None:
-            raise self.error
-        return self.chat_name
-
-    def send_message(self, chat_id: str, message: str) -> str:
-        del chat_id, message
-        if self.error is not None:
-            raise self.error
-        return self.sent_id
-
-
-def _patch_channel_deps(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(token_cache_module, "TokenCache", FakeTokenCache)
-    monkeypatch.setattr(az_provider_module, "AzGraphTokenProvider", FakeGraphTokenProvider)
-    monkeypatch.setattr(graph_client_module, "GraphClient", FakeGraphClientFactory)
-    monkeypatch.setattr(channels_module, "ChannelService", FakeChannelService)
-
-
-def _patch_chat_deps(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(token_cache_module, "ChatTokenCache", FakeChatTokenCache)
-    monkeypatch.setattr(az_provider_module, "AzChatTokenProvider", FakeChatTokenProvider)
-    monkeypatch.setattr(chat_client_module, "ChatServiceClient", FakeChatClientFactory)
-    monkeypatch.setattr(chats_module, "ChatService", FakeChatService)
 
 
 def _sample_channel_message(message_id: str = "m1") -> ChannelMessage:
@@ -325,7 +272,10 @@ def test_verbose_flag_is_accepted() -> None:
 def test_main_callback_disables_logger(monkeypatch: pytest.MonkeyPatch) -> None:
     calls: list[str] = []
 
-    monkeypatch.setattr(logger, "disable", lambda name: _record_disable(calls, name))
+    def fake_disable(name: str) -> None:
+        _record_disable(calls, name)
+
+    monkeypatch.setattr(logger, "disable", fake_disable)
 
     cli_module.main(verbose=0)
 
@@ -335,7 +285,10 @@ def test_main_callback_disables_logger(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_main_callback_enables_logger(monkeypatch: pytest.MonkeyPatch) -> None:
     calls: list[str] = []
 
-    monkeypatch.setattr(logger, "enable", lambda name: _record_enable(calls, name))
+    def fake_enable(name: str) -> None:
+        _record_enable(calls, name)
+
+    monkeypatch.setattr(logger, "enable", fake_enable)
 
     cli_module.main(verbose=2)
 
@@ -347,23 +300,22 @@ def test_global_error_handler_for_keyboard_interrupt(monkeypatch: pytest.MonkeyP
 
     def fake_super_main(*args: object, **kwargs: object) -> object:
         del args, kwargs
-        raise KeyboardInterrupt()
+        raise SystemExit(130)
 
     monkeypatch.setattr(TyperGroup, "main", fake_super_main)
-    monkeypatch.setattr(
-        typer,
-        "echo",
-        lambda message, err=False: _record_echo(captured, message, err),
-    )
+    def fake_echo(message: object, err: bool = False) -> None:
+        _record_echo(captured, message, err)
+
+    monkeypatch.setattr(typer, "echo", fake_echo)
 
     group = cli_module.TeamsTyperGroup(name="ms-teams")
 
     try:
         _ = group.main([])
-    except typer.Exit as exc:
-        assert exc.exit_code == 130
+    except SystemExit as exc:
+        assert exc.code == 130
     else:
-        raise AssertionError("Expected typer.Exit")
+        raise AssertionError("Expected SystemExit")
 
     assert captured == [("Cancelled.", True)]
 
@@ -376,11 +328,10 @@ def test_global_error_handler_for_uncaught_teams_error(monkeypatch: pytest.Monke
         raise TeamsError("boom")
 
     monkeypatch.setattr(TyperGroup, "main", fake_super_main)
-    monkeypatch.setattr(
-        typer,
-        "echo",
-        lambda message, err=False: _record_echo(captured, message, err),
-    )
+    def fake_echo(message: object, err: bool = False) -> None:
+        _record_echo(captured, message, err)
+
+    monkeypatch.setattr(typer, "echo", fake_echo)
 
     group = cli_module.TeamsTyperGroup(name="ms-teams")
 
@@ -392,6 +343,21 @@ def test_global_error_handler_for_uncaught_teams_error(monkeypatch: pytest.Monke
         raise AssertionError("Expected typer.Exit")
 
     assert captured == [("boom", True)]
+
+
+def test_global_error_handler_reraises_non_interrupt_system_exit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fake_super_main(*args: object, **kwargs: object) -> object:
+        del args, kwargs
+        raise SystemExit(2)
+
+    monkeypatch.setattr(TyperGroup, "main", fake_super_main)
+
+    group = cli_module.TeamsTyperGroup(name="ms-teams")
+
+    with pytest.raises(SystemExit, match="2"):
+        _ = group.main([])
 
 
 def test_package_public_api_exports() -> None:
@@ -453,9 +419,7 @@ def test_parse_url_reads_from_prompt(
 
 
 def test_teams_command_empty_state(monkeypatch: pytest.MonkeyPatch) -> None:
-    FakeChannelService.teams = []
-    FakeChannelService.error = None
-    _patch_channel_deps(monkeypatch)
+    monkeypatch.setattr(channels_module.ChannelService, "list_teams", _empty_teams)
 
     result = runner.invoke(app, ["teams"])
 
@@ -464,9 +428,7 @@ def test_teams_command_empty_state(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_channels_command_empty_state(monkeypatch: pytest.MonkeyPatch) -> None:
-    FakeChannelService.channels = []
-    FakeChannelService.error = None
-    _patch_channel_deps(monkeypatch)
+    monkeypatch.setattr(channels_module.ChannelService, "list_channels", _empty_channels)
 
     result = runner.invoke(app, ["channels", "--team", "t1"])
 
@@ -475,9 +437,7 @@ def test_channels_command_empty_state(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_messages_command_empty_state(monkeypatch: pytest.MonkeyPatch) -> None:
-    FakeChannelService.messages = []
-    FakeChannelService.error = None
-    _patch_channel_deps(monkeypatch)
+    monkeypatch.setattr(channels_module.ChannelService, "get_messages", _empty_channel_messages)
 
     result = runner.invoke(app, ["messages", "--team", "t1", "--channel", "c1"])
 
@@ -486,10 +446,7 @@ def test_messages_command_empty_state(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_replies_command_empty_state(monkeypatch: pytest.MonkeyPatch) -> None:
-    FakeChannelService.thread_parent = _sample_channel_message()
-    FakeChannelService.thread_replies = []
-    FakeChannelService.error = None
-    _patch_channel_deps(monkeypatch)
+    monkeypatch.setattr(channels_module.ChannelService, "get_thread", _empty_thread)
 
     result = runner.invoke(app, ["replies", "--team", "t1", "--channel", "c1", "--thread", "m1"])
 
@@ -498,9 +455,7 @@ def test_replies_command_empty_state(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_unanswered_command_empty_state(monkeypatch: pytest.MonkeyPatch) -> None:
-    FakeChannelService.unanswered = []
-    FakeChannelService.error = None
-    _patch_channel_deps(monkeypatch)
+    monkeypatch.setattr(channels_module.ChannelService, "find_unanswered", _empty_unanswered)
 
     result = runner.invoke(app, ["unanswered", "--team", "t1", "--channel", "c1"])
 
@@ -509,9 +464,7 @@ def test_unanswered_command_empty_state(monkeypatch: pytest.MonkeyPatch) -> None
 
 
 def test_scan_command_empty_state(monkeypatch: pytest.MonkeyPatch) -> None:
-    FakeChannelService.scan_result = ScanResult(date="2024-01-15", channels=[])
-    FakeChannelService.error = None
-    _patch_channel_deps(monkeypatch)
+    monkeypatch.setattr(channels_module.ChannelService, "scan_activity", _empty_scan_result)
 
     result = runner.invoke(app, ["scan", "--team", "t1", "--date", "2024-01-15"])
 
@@ -520,9 +473,7 @@ def test_scan_command_empty_state(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_chats_command_empty_state(monkeypatch: pytest.MonkeyPatch) -> None:
-    FakeChatService.chats = []
-    FakeChatService.error = None
-    _patch_chat_deps(monkeypatch)
+    monkeypatch.setattr(chats_module.ChatService, "list_chats", _empty_chats)
 
     result = runner.invoke(app, ["chats"])
 
@@ -531,9 +482,7 @@ def test_chats_command_empty_state(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_unread_command_empty_state(monkeypatch: pytest.MonkeyPatch) -> None:
-    FakeChatService.unread = []
-    FakeChatService.error = None
-    _patch_chat_deps(monkeypatch)
+    monkeypatch.setattr(chats_module.ChatService, "list_unread", _empty_unread)
 
     result = runner.invoke(app, ["unread"])
 
@@ -542,9 +491,7 @@ def test_unread_command_empty_state(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_chat_messages_command_empty_state(monkeypatch: pytest.MonkeyPatch) -> None:
-    FakeChatService.messages = []
-    FakeChatService.error = None
-    _patch_chat_deps(monkeypatch)
+    monkeypatch.setattr(chats_module.ChatService, "get_messages", _empty_chat_messages)
 
     result = runner.invoke(app, ["chat-messages", "--chat", "19:g1@thread.v2"])
 
@@ -556,9 +503,7 @@ def test_send_message_command_cancel(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    FakeChatService.chat_name = "Architecture"
-    FakeChatService.error = None
-    _patch_chat_deps(monkeypatch)
+    monkeypatch.setattr(chats_module.ChatService, "resolve_chat_name", _architecture_chat_name)
     monkeypatch.setattr("sys.stdin.isatty", lambda: True)
     monkeypatch.setattr(typer, "prompt", _decline_prompt)
 
@@ -568,10 +513,8 @@ def test_send_message_command_cancel(
 
 
 def test_send_message_command_yes(monkeypatch: pytest.MonkeyPatch) -> None:
-    FakeChatService.chat_name = "Architecture"
-    FakeChatService.sent_id = "msg-123"
-    FakeChatService.error = None
-    _patch_chat_deps(monkeypatch)
+    monkeypatch.setattr(chats_module.ChatService, "resolve_chat_name", _architecture_chat_name)
+    monkeypatch.setattr(chats_module.ChatService, "send_message", _sent_message_id)
 
     result = runner.invoke(
         app,
@@ -583,8 +526,11 @@ def test_send_message_command_yes(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_teams_command_error_output(monkeypatch: pytest.MonkeyPatch) -> None:
-    FakeChannelService.error = TeamsError("team failure")
-    _patch_channel_deps(monkeypatch)
+    def raise_teams_error(self: object) -> list[Team]:
+        del self
+        raise TeamsError("team failure")
+
+    monkeypatch.setattr(channels_module.ChannelService, "list_teams", raise_teams_error)
 
     result = runner.invoke(app, ["teams"])
 
@@ -601,7 +547,7 @@ def test_token_command_success(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) 
             super().__init__(cache_path)
 
     class LocalTokenProvider(FakeGraphTokenProvider):
-        should_raise = None
+        should_raise: Exception | None = None
 
     monkeypatch.setattr(token_cache_module, "TokenCache", LocalTokenCache)
     monkeypatch.setattr(az_provider_module, "AzGraphTokenProvider", LocalTokenProvider)
@@ -662,8 +608,17 @@ def test_token_command_unexpected_error(monkeypatch: pytest.MonkeyPatch) -> None
 
 
 def test_scan_command_value_error(monkeypatch: pytest.MonkeyPatch) -> None:
-    FakeChannelService.error = ValueError("date must be YYYY-MM-DD")
-    _patch_channel_deps(monkeypatch)
+    def raise_value_error(
+        self: object,
+        team_id: str,
+        date: str,
+        pages: int = 2,
+        top: int = 50,
+    ) -> ScanResult:
+        del self, team_id, date, pages, top
+        raise ValueError("date must be YYYY-MM-DD")
+
+    monkeypatch.setattr(channels_module.ChannelService, "scan_activity", raise_value_error)
 
     result = runner.invoke(app, ["scan", "--team", "t1", "--date", "bad"])
 
@@ -672,7 +627,9 @@ def test_scan_command_value_error(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_chats_command_invalid_type(monkeypatch: pytest.MonkeyPatch) -> None:
-    _patch_chat_deps(monkeypatch)
+    monkeypatch.setattr(token_cache_module, "ChatTokenCache", FakeChatTokenCache)
+    monkeypatch.setattr(az_provider_module, "AzChatTokenProvider", FakeChatTokenProvider)
+    monkeypatch.setattr(chat_client_module, "ChatServiceClient", FakeChatClientFactory)
 
     result = runner.invoke(app, ["chats", "--type", "bad"])
 
@@ -681,7 +638,9 @@ def test_chats_command_invalid_type(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_unread_command_invalid_type(monkeypatch: pytest.MonkeyPatch) -> None:
-    _patch_chat_deps(monkeypatch)
+    monkeypatch.setattr(token_cache_module, "ChatTokenCache", FakeChatTokenCache)
+    monkeypatch.setattr(az_provider_module, "AzChatTokenProvider", FakeChatTokenProvider)
+    monkeypatch.setattr(chat_client_module, "ChatServiceClient", FakeChatClientFactory)
 
     result = runner.invoke(app, ["unread", "--type", "bad"])
 
