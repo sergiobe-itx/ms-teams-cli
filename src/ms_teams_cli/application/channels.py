@@ -122,7 +122,6 @@ class ChannelService:
             reply_count = m.get("replyCount")
             if isinstance(reply_count, int) and reply_count > 0:
                 continue
-                continue
             created_str = m.get("createdDateTime")
             if not isinstance(created_str, str):
                 continue
