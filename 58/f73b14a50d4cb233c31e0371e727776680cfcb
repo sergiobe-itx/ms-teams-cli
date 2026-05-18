@@ -1,0 +1,30 @@
+src/ms_teams_cli/infrastructure/auth/__init__.py
+  s_e014ce82c38e0e::t_3e727bfcb7b3cb 6,16
+src/ms_teams_cli/infrastructure/auth/msal_provider.py
+  s_e014ce82c38e0e::t_5503f7f5d47a73 62
+  s_e014ce82c38e0e::t_78a8698ccea690 12-14
+  s_e014ce82c38e0e::t_29c0f550885a69 80-81
+  s_e014ce82c38e0e::t_ebd1f256491fd8 22
+  s_e014ce82c38e0e::t_031a690534e8b4 79
+  s_e014ce82c38e0e::t_e1163c17019526 1-6,8-11,15-21,23-24,26-27,29-31,34-35,37-46,48-54,56,60-61,63-68,70,73-75,77,82-86
+  s_e014ce82c38e0e::t_b06c9c3bb89380 28,33,36,47,55,57-59,69,72,76,88
+  s_e014ce82c38e0e::t_dff8e89291c90d 7,25,32,71,78,87
+pyproject.toml
+  s_e014ce82c38e0e::t_e5a322976f6261 13
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.9",
+  "base_commit_sha": "58f73b14a50d4cb233c31e0371e727776680cfcb",
+  "prompts": {},
+  "sessions": {
+    "s_e014ce82c38e0e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_1c50c3291ffeR3FYGSknViCQVV",
+        "model": "unknown"
+      },
+      "human_author": "Sergio Bugallo Enjamio <sergiobe@inditex.com>"
+    }
+  }
+}
