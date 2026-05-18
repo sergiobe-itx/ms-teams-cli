@@ -1,0 +1,46 @@
+src/ms_teams_cli/domain/services/chat_classifier.py
+  s_73ebbe96b0914d::t_89ffa3795d5211 1-49
+tests/test_text.py
+  s_73ebbe96b0914d::t_892e5415de1e3f 4
+src/ms_teams_cli/domain/services/__init__.py
+  s_73ebbe96b0914d::t_b8da482c4d23f6 1-17
+src/ms_teams_cli/domain/services/url_parser.py
+  s_73ebbe96b0914d::t_89ffa3795d5211 1-57
+src/ms_teams_cli/presentation/formatters.py
+  s_73ebbe96b0914d::t_80a03898cabcc8 255
+  s_73ebbe96b0914d::t_d4ebec011300ae 177
+  s_73ebbe96b0914d::t_54cf24f0b98673 112
+  s_73ebbe96b0914d::t_cbac34564dd9e2 158
+  s_73ebbe96b0914d::t_b939607d748911 217
+  s_73ebbe96b0914d::t_833a65ca81f71c 291
+  s_73ebbe96b0914d::t_e0417daeb322a5 327
+src/ms_teams_cli/domain/services/text.py
+  s_73ebbe96b0914d::t_89ffa3795d5211 1-27
+tests/test_url_parser.py
+  s_73ebbe96b0914d::t_bb77452205ccfc 4
+tests/test_chats.py
+  s_73ebbe96b0914d::t_30a798c7cd65fd 17
+src/ms_teams_cli/application/chats.py
+  s_73ebbe96b0914d::t_30a798c7cd65fd 7
+src/ms_teams_cli/presentation/cli.py
+  s_73ebbe96b0914d::t_71047f0b73d568 360
+src/ms_teams_cli/domain/services/chat_display.py
+  s_73ebbe96b0914d::t_30a798c7cd65fd 22
+  s_73ebbe96b0914d::t_89ffa3795d5211 1-21,23-84
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.9",
+  "base_commit_sha": "f5a2c4b5ce091b94eb13a6584c9e114f1e3419d7",
+  "prompts": {},
+  "sessions": {
+    "s_73ebbe96b0914d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_1c58f907cffedcILGkujg2HasD",
+        "model": "unknown"
+      },
+      "human_author": "Sergio Bugallo Enjamio <sergiobe@inditex.com>"
+    }
+  }
+}
