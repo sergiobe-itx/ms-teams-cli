@@ -100,6 +100,31 @@ class ChatService:
             )
         return result
 
+    def resolve_chat_name(self, chat_id: str) -> str:
+        """Resolve a chat ID to a display name by searching conversations."""
+        chat_service_url = self._client.get_service_url()
+        try:
+            url = f"{chat_service_url}/v1/users/ME/conversations?view=mychats&pageSize=200"
+            data = self._client.get(url)
+            for conv in _as_payloads(data.get("conversations", [])):
+                if conv.get("id") == chat_id:
+                    return resolve_display_name(conv, self._client, chat_service_url)
+        except Exception:  # noqa: BLE001
+            pass
+        return chat_id  # Fall back to raw ID
+
+    def send_message(self, chat_id: str, message: str) -> str:
+        """Send a message to a chat conversation. Returns the message ID."""
+        chat_service_url = self._client.get_service_url()
+        url = f"{chat_service_url}/v1/users/ME/conversations/{chat_id}/messages"
+        body: dict[str, object] = {
+            "content": message,
+            "messagetype": "RichText/Html" if "<" in message else "Text",
+            "contenttype": "text",
+        }
+        result = self._client.post(url, body)
+        return str(result.get("OriginalArrivalTime") or result.get("id", ""))
+
     def get_messages(self, chat_id: str, top: int = 30) -> list[ChatMessage]:
         """Return messages from a chat conversation in chronological order."""
         chat_service_url = self._client.get_service_url()

@@ -37,6 +37,8 @@ class FakeChatClient:
         self._service_url: str = service_url
         self.called_urls: list[str] = []
         self.responses: dict[str, dict[str, object]] = {}
+        self.post_calls: list[tuple[str, dict[str, object]]] = []
+        self.post_response: dict[str, object] = {}
 
     def get_service_url(self) -> str:
         return self._service_url
@@ -44,6 +46,10 @@ class FakeChatClient:
     def get(self, url: str) -> dict[str, object]:
         self.called_urls.append(url)
         return self.responses.get(url, self._payload)
+
+    def post(self, url: str, body: dict[str, object]) -> dict[str, object]:
+        self.post_calls.append((url, body))
+        return self.post_response
 
 
 class FakeChatTokenCache:
@@ -479,4 +485,100 @@ def test_chat_messages_cli_help() -> None:
 
 def test_unread_cli_help() -> None:
     result = runner.invoke(app, ["unread", "--help"])
+    assert result.exit_code == 0
+
+
+def test_send_message_posts_correct_body() -> None:
+    client = FakeChatClient({"conversations": []})
+    client.post_response = {"OriginalArrivalTime": "12345"}
+
+    ChatService(
+        chat_client=cast("ChatServiceClient", cast("object", client))
+    ).send_message("19:abc@thread.v2", "Hello world")
+
+    assert len(client.post_calls) == 1
+    url, body = client.post_calls[0]
+    assert url == "https://chat.example.test/v1/users/ME/conversations/19:abc@thread.v2/messages"
+    assert body["content"] == "Hello world"
+    assert body["messagetype"] == "Text"
+    assert body["contenttype"] == "text"
+
+
+def test_send_message_html_detection() -> None:
+    client = FakeChatClient({"conversations": []})
+    client.post_response = {"id": "1"}
+
+    ChatService(
+        chat_client=cast("ChatServiceClient", cast("object", client))
+    ).send_message("19:abc@thread.v2", "<b>Bold</b> text")
+
+    _, body = client.post_calls[0]
+    assert body["messagetype"] == "RichText/Html"
+
+
+def test_send_message_no_robot_emoji() -> None:
+    client = FakeChatClient({"conversations": []})
+    client.post_response = {"id": "1"}
+
+    ChatService(
+        chat_client=cast("ChatServiceClient", cast("object", client))
+    ).send_message("19:abc@thread.v2", "Test message")
+
+    _, body = client.post_calls[0]
+    content = str(body["content"])
+    assert not content.startswith("\U0001f916")
+    assert content == "Test message"
+
+
+def test_send_message_returns_original_arrival_time() -> None:
+    client = FakeChatClient({"conversations": []})
+    client.post_response = {"OriginalArrivalTime": "12345"}
+
+    result = ChatService(
+        chat_client=cast("ChatServiceClient", cast("object", client))
+    ).send_message("19:abc@thread.v2", "hi")
+
+    assert result == "12345"
+
+
+def test_send_message_falls_back_to_id() -> None:
+    client = FakeChatClient({"conversations": []})
+    client.post_response = {"id": "99"}
+
+    result = ChatService(
+        chat_client=cast("ChatServiceClient", cast("object", client))
+    ).send_message("19:abc@thread.v2", "hi")
+
+    assert result == "99"
+
+
+def test_resolve_chat_name_finds_match() -> None:
+    client = FakeChatClient(
+        {
+            "conversations": [
+                {"id": "19:target@thread.v2", "threadProperties": {"topic": "My Chat"}},
+                {"id": "19:other@thread.v2", "threadProperties": {"topic": "Other"}},
+            ]
+        }
+    )
+
+    result = ChatService(
+        chat_client=cast("ChatServiceClient", cast("object", client))
+    ).resolve_chat_name("19:target@thread.v2")
+
+    assert result == "My Chat"
+
+
+def test_resolve_chat_name_fallback_to_id() -> None:
+    client = FakeChatClient({"conversations": []})
+
+    result = ChatService(
+        chat_client=cast("ChatServiceClient", cast("object", client))
+    ).resolve_chat_name("19:nonexistent@thread.v2")
+
+    assert result == "19:nonexistent@thread.v2"
+
+
+def test_send_message_cli_help() -> None:
+    result = runner.invoke(app, ["send-message", "--help"])
     assert result.exit_code == 0

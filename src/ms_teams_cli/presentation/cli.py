@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import sys
 from typing import Annotated, cast
 
 import typer
@@ -490,3 +491,51 @@ def chat_messages_command(
         return
 
     format_chat_messages_table(messages)
+
+
+@app.command("send-message")
+def send_message_command(
+    chat_id: Annotated[str, typer.Option("--chat", help="Conversation ID")],  # pyright: ignore[reportUnknownMemberType]
+    message: Annotated[str, typer.Option("--message", help="Text to send")],  # pyright: ignore[reportUnknownMemberType]
+    yes: Annotated[bool, typer.Option("--yes", help="Skip confirmation prompt")] = False,  # pyright: ignore[reportUnknownMemberType]
+) -> None:
+    """Send a message to a chat conversation."""
+    from ms_teams_cli.application.chats import ChatService
+    from ms_teams_cli.infrastructure.az_provider import AzChatTokenProvider
+    from ms_teams_cli.infrastructure.chat_client import ChatServiceClient
+    from ms_teams_cli.infrastructure.token_cache import ChatTokenCache
+
+    try:
+        cache = ChatTokenCache()
+        provider = AzChatTokenProvider(cache=cache)
+        client = ChatServiceClient(token_provider=provider)
+        service = ChatService(chat_client=client)
+        chat_name = service.resolve_chat_name(chat_id)
+    except TeamsError as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(code=1) from exc
+
+    typer.echo("=" * 60)
+    typer.echo(f"  TO:      {chat_name}")
+    typer.echo(f"  CHAT ID: {chat_id}")
+    typer.echo(f"  MESSAGE: {message}")
+    typer.echo("=" * 60)
+
+    if yes:
+        confirmed = True
+    elif sys.stdin.isatty():
+        answer = typer.prompt("\nSend this message? [y/N]", default="N")
+        confirmed = answer.strip().lower() == "y"
+    else:
+        confirmed = True
+
+    if not confirmed:
+        typer.echo("Cancelled — message NOT sent.")
+        return
+
+    try:
+        msg_id = service.send_message(chat_id, message)
+        typer.echo(f"Message sent. (id: {msg_id})")
+    except TeamsError as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(code=1) from exc
