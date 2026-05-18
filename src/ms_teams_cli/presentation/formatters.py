@@ -9,7 +9,9 @@ from rich.console import Console
 from rich.table import Table
 
 if TYPE_CHECKING:
-    from ms_teams_cli.domain.models import Channel, Team
+    from collections.abc import Iterable
+
+    from ms_teams_cli.domain.models import Channel, ChannelMessage, Team
 
 
 @runtime_checkable
@@ -92,3 +94,49 @@ def format_json(data: object) -> None:
         )
         return
     print(json.dumps(data, indent=2, ensure_ascii=False))
+
+
+def format_messages_table(messages: Iterable[ChannelMessage]) -> None:
+    """Print channel messages as a table (TTY) or plain text (non-TTY)."""
+    from ms_teams_cli.domain.text import format_datetime, strip_html
+
+    count = 0
+    if _is_tty():
+        console = Console()
+        table = Table(show_header=True, header_style="bold cyan")
+        table.add_column("Author", style="green", min_width=20)
+        table.add_column("When", style="dim", min_width=16)
+        table.add_column("Replies", justify="right", min_width=7)
+        table.add_column("Preview")
+        for msg in messages:
+            if msg.message_type != "message":
+                continue
+            rc = "(reply)" if msg.reply_to_id else str(msg.reply_count or "-")
+            preview = strip_html(msg.body.content)[:80]
+            table.add_row(
+                msg.author.display_name,
+                format_datetime(msg.created_date_time),
+                rc,
+                preview,
+            )
+            count += 1
+        console.print(table)
+    else:
+        print(f"{'AUTHOR':<25} {'WHEN':<20} {'REPLIES':<8} SUBJECT / PREVIEW")
+        print("-" * 100)
+        for msg in messages:
+            if msg.message_type != "message":
+                continue
+            rc = "(reply)" if msg.reply_to_id else str(msg.reply_count or "-")
+            preview = strip_html(msg.body.content)[:80]
+            row = (
+                f"{msg.author.display_name:<25} "
+                + f"{format_datetime(msg.created_date_time):<20} "
+                + f"{rc:<8} {preview}"
+            )
+            print(row)
+            count += 1
+    if count == 0:
+        print("No messages found.")
+        return
+    print(f"\n{count} messages.")

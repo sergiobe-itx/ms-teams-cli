@@ -13,7 +13,7 @@ import ms_teams_cli.infrastructure.token_cache as token_cache_module
 import ms_teams_cli.presentation.cli as cli_module
 import ms_teams_cli.presentation.formatters as formatters_module
 from ms_teams_cli.application.channels import ChannelService
-from ms_teams_cli.domain.models import Channel, Team
+from ms_teams_cli.domain.models import Channel, ChannelMessage, MessageAuthor, MessageBody, Team
 
 if TYPE_CHECKING:
     import pytest
@@ -29,10 +29,18 @@ class FakeGraphClient:
     def __init__(self, payload: dict[str, object]) -> None:
         self._payload: dict[str, object] = payload
         self.called_urls: list[str] = []
+        self.paginate_calls: list[tuple[str, int]] = []
 
     def get(self, url: str) -> dict[str, object]:
         self.called_urls.append(url)
         return self._payload
+
+    def paginate(self, url: str, max_pages: int = 1) -> list[dict[str, object]]:
+        self.paginate_calls.append((url, max_pages))
+        value = self._payload.get("value", [])
+        if isinstance(value, list):
+            return cast("list[dict[str, object]]", value)
+        return []
 
 
 class FakeTokenCache:
@@ -53,6 +61,8 @@ class FakeGraphClientFactory:
 class FakeChannelService:
     teams: list[Team] = []
     channels: list[Channel] = []
+    messages: list[ChannelMessage] = []
+    get_messages_calls: list[dict[str, object]] = []
 
     def __init__(self, graph_client: FakeGraphClientFactory) -> None:
         self.graph_client: FakeGraphClientFactory = graph_client
@@ -60,8 +70,27 @@ class FakeChannelService:
     def list_teams(self) -> list[Team]:
         return self.teams
 
-    def list_channels(self, team_id: str) -> list[Channel]:
+    def list_channels(self, _team_id: str) -> list[Channel]:
         return self.channels
+
+    def get_messages(
+        self,
+        team_id: str,
+        channel_id: str,
+        top: int = 20,
+        pages: int = 1,
+        since: str | None = None,
+    ) -> list[ChannelMessage]:
+        self.get_messages_calls.append(
+            {
+                "team_id": team_id,
+                "channel_id": channel_id,
+                "top": top,
+                "pages": pages,
+                "since": since,
+            }
+        )
+        return self.messages
 
 
 def test_list_teams_returns_team_objects() -> None:
@@ -122,11 +151,85 @@ def test_list_channels_uses_correct_url() -> None:
     client = FakeGraphClient({"value": []})
 
     service = ChannelService(graph_client=cast("GraphClient", cast("object", client)))
-    service.list_channels("team-id-123")
+    _ = service.list_channels("team-id-123")
 
     assert len(client.called_urls) == 1
     assert "team-id-123" in client.called_urls[0]
     assert "channels" in client.called_urls[0]
+
+
+def test_get_messages_returns_channel_message_objects() -> None:
+    client = FakeGraphClient(
+        {
+            "value": [
+                {
+                    "id": "m1",
+                    "messageType": "message",
+                    "createdDateTime": "2024-01-15T14:30:00Z",
+                    "replyCount": 3,
+                    "from": {"user": {"displayName": "Alice Johnson"}},
+                    "body": {"contentType": "html", "content": "<p>Hello</p>"},
+                },
+                {
+                    "id": "m2",
+                    "messageType": "message",
+                    "createdDateTime": "2024-01-15T14:31:00Z",
+                    "replyCount": 0,
+                    "from": {"user": {"displayName": "Bob Smith"}},
+                    "body": {"contentType": "html", "content": "<p>Hi</p>"},
+                },
+                {
+                    "id": "m3",
+                    "messageType": "message",
+                    "createdDateTime": "2024-01-15T14:32:00Z",
+                    "replyCount": 1,
+                    "from": {"user": {"displayName": "Carol Jones"}},
+                    "body": {"contentType": "html", "content": "<p>Hey</p>"},
+                },
+            ]
+        }
+    )
+
+    service = ChannelService(graph_client=cast("GraphClient", cast("object", client)))
+    messages = list(service.get_messages("team-123", "channel-456"))
+
+    assert len(messages) == 3
+    assert all(isinstance(message, ChannelMessage) for message in messages)
+    assert messages[0].id == "m1"
+    assert messages[0].author.display_name == "Alice Johnson"
+    assert messages[0].body.content == "<p>Hello</p>"
+
+
+def test_get_messages_empty() -> None:
+    client = FakeGraphClient({"value": []})
+
+    service = ChannelService(graph_client=cast("GraphClient", cast("object", client)))
+    messages = list(service.get_messages("team-123", "channel-456"))
+
+    assert messages == []
+
+
+def test_get_messages_url_construction_with_since() -> None:
+    client = FakeGraphClient({"value": []})
+
+    service = ChannelService(graph_client=cast("GraphClient", cast("object", client)))
+    _ = list(
+        service.get_messages(
+            "team-123",
+            "channel-456",
+            top=20,
+            pages=2,
+            since="2024-01-01T00:00:00Z",
+        )
+    )
+
+    assert client.paginate_calls == [
+        (
+            "https://graph.microsoft.com/beta/teams/team-123/channels/channel-456/messages"
+            + "?$top=20&$filter=createdDateTime%20ge%202024-01-01T00:00:00Z",
+            2,
+        )
+    ]
 
 
 def test_teams_cli_command_smoke(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -247,3 +350,60 @@ def test_channels_cli_json_output(monkeypatch: pytest.MonkeyPatch) -> None:
         "display_name": "General",
         "description": "main",
     }
+
+
+def test_messages_cli_command_smoke(monkeypatch: pytest.MonkeyPatch) -> None:
+    messages = [
+        ChannelMessage(
+            id="m1",
+            createdDateTime="2024-01-15T14:30:00Z",
+            author=MessageAuthor(displayName="Alice Johnson"),
+            body=MessageBody(content="<p>Hello</p>", contentType="html"),
+            replyCount=3,
+            messageType="message",
+            replyToId=None,
+        ),
+        ChannelMessage(
+            id="m2",
+            createdDateTime="2024-01-15T14:31:00Z",
+            author=MessageAuthor(displayName="Bob Smith"),
+            body=MessageBody(content="<p>Hi</p>", contentType="html"),
+            replyCount=0,
+            messageType="message",
+            replyToId=None,
+        ),
+    ]
+    FakeChannelService.messages = messages
+    FakeChannelService.get_messages_calls = []
+
+    monkeypatch.setattr(token_cache_module, "TokenCache", FakeTokenCache)
+    monkeypatch.setattr(az_provider_module, "AzGraphTokenProvider", FakeTokenProvider)
+    monkeypatch.setattr(graph_client_module, "GraphClient", FakeGraphClientFactory)
+    monkeypatch.setattr(channels_module, "ChannelService", FakeChannelService)
+
+    captured: list[list[ChannelMessage]] = []
+
+    def fake_formatter(items: list[ChannelMessage]) -> None:
+        captured.append(items)
+        for item in items:
+            print(item.author.display_name)
+        print(f"{len(items)} messages.")
+
+    monkeypatch.setattr(formatters_module, "format_messages_table", fake_formatter)
+
+    result = runner.invoke(app, ["messages", "--team", "t1", "--channel", "c1"])
+
+    assert result.exit_code == 0
+    assert captured == [messages]
+    assert FakeChannelService.get_messages_calls == [
+        {
+            "team_id": "t1",
+            "channel_id": "c1",
+            "top": 20,
+            "pages": 1,
+            "since": None,
+        }
+    ]
+    assert "Alice Johnson" in result.stdout
+    assert "Bob Smith" in result.stdout
+    assert "2 messages." in result.stdout

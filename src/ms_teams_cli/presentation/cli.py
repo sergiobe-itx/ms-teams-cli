@@ -85,5 +85,59 @@ def channels_command(
     format_channels_table(channels)
 
 
+@app.command("messages")
+def messages_command(
+    team_id: Annotated[str, typer.Option("--team", help="Team ID")],  # pyright: ignore[reportUnknownMemberType]
+    channel_id: Annotated[
+        str,
+        typer.Option("--channel", help="Channel ID"),  # pyright: ignore[reportUnknownMemberType]
+    ],
+    top: Annotated[
+        int,
+        typer.Option("--top", help="Items per page"),  # pyright: ignore[reportUnknownMemberType]
+    ] = 20,
+    pages: Annotated[
+        int,
+        typer.Option("--pages", help="Max pages to fetch"),  # pyright: ignore[reportUnknownMemberType]
+    ] = 1,
+    since: Annotated[
+        str | None,
+        typer.Option("--since", help="Filter since ISO date"),  # pyright: ignore[reportUnknownMemberType]
+    ] = None,
+    json_output: Annotated[
+        bool,
+        typer.Option("--json", help="Output as JSON"),  # pyright: ignore[reportUnknownMemberType]
+    ] = False,
+) -> None:
+    """List messages in a channel."""
+    from ms_teams_cli.application.channels import ChannelService
+    from ms_teams_cli.infrastructure.az_provider import AzGraphTokenProvider
+    from ms_teams_cli.infrastructure.graph_client import GraphClient
+    from ms_teams_cli.infrastructure.token_cache import TokenCache
+    from ms_teams_cli.presentation.formatters import format_json, format_messages_table
+
+    try:
+        cache = TokenCache()
+        provider = AzGraphTokenProvider(cache=cache)
+        client = GraphClient(token_provider=provider)
+        service = ChannelService(graph_client=client)
+        messages = service.get_messages(
+            team_id=team_id,
+            channel_id=channel_id,
+            top=top,
+            pages=pages,
+            since=since,
+        )
+    except TeamsError as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(code=1) from exc
+
+    if json_output:
+        format_json(list(messages))
+        return
+
+    format_messages_table(messages)
+
+
 if __name__ == "__main__":
     app()
