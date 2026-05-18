@@ -64,6 +64,20 @@ class MsalGraphTokenProvider:
             "Not logged in via MSAL. Run: ms-teams login"
         )
 
+    def renew(self) -> str:
+        """Force token renewal using the MSAL refresh token."""
+        accounts = self._app.get_accounts()  # type: ignore[no-untyped-call]
+        if accounts:
+            result = self._app.acquire_token_silent(  # type: ignore[no-untyped-call]
+                scopes=_SCOPES, account=accounts[0], force_refresh=True
+            )
+            if result and "access_token" in result:
+                _save_msal_cache(self._token_cache, self._cache_path)
+                return str(result["access_token"])  # type: ignore[arg-type]
+        raise AuthenticationError(
+            "Token renewal failed. Not logged in via MSAL. Run: ms-teams login"
+        )
+
     def login(self) -> str:
         """Run device-code flow, cache the token, and return the access token."""
         flow = self._app.initiate_device_flow(scopes=_SCOPES)  # type: ignore[no-untyped-call]

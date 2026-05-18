@@ -14,6 +14,15 @@ class TokenProvider(Protocol):
 
 
 @runtime_checkable
+class GraphTokenProvider(TokenProvider, Protocol):
+    """Graph token provider with renewal support."""
+
+    def renew(self) -> str:
+        """Refresh and return a new access token."""
+        ...
+
+
+@runtime_checkable
 class ChatTokenProvider(Protocol):
     """Protocol for Teams Chat Service token providers."""
 

@@ -1,27 +1,20 @@
 """Microsoft Graph API HTTP client."""
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Protocol, cast
+from typing import TYPE_CHECKING, cast
 
 import httpx
 
 from ms_teams_cli.domain.exceptions import GraphAPIError
-from ms_teams_cli.domain.ports import TokenProvider
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
+    from ms_teams_cli.domain.ports import GraphTokenProvider
+
 
 GRAPH = "https://graph.microsoft.com/v1.0"
 GRAPH_BETA = "https://graph.microsoft.com/beta"
-
-
-class GraphTokenProvider(TokenProvider, Protocol):
-    """Graph token provider with renewal support."""
-
-    def renew(self) -> str:
-        """Refresh and return a new access token."""
-        ...
 
 
 def _extract_error_message(payload: object) -> str:

@@ -93,3 +93,26 @@ def test_logout_does_nothing_when_no_cache(mock_msal_app: MagicMock, tmp_path: P
     provider.logout()
 
     assert not cache_path.exists()
+
+
+def test_renew_returns_token_with_force_refresh(mock_msal_app: MagicMock, tmp_path: Path) -> None:
+    mock_msal_app.get_accounts.return_value = [{"mock": "account"}]
+    mock_msal_app.acquire_token_silent.return_value = {"access_token": "refreshed-token-456"}
+    provider = MsalGraphTokenProvider(cache_path=tmp_path / "cache.json")
+
+    result = provider.renew()
+
+    assert result == "refreshed-token-456"
+    mock_msal_app.acquire_token_silent.assert_called_once_with(
+        scopes=["https://graph.microsoft.com/.default"],
+        account={"mock": "account"},
+        force_refresh=True,
+    )
+
+
+def test_renew_raises_when_no_accounts(mock_msal_app: MagicMock, tmp_path: Path) -> None:
+    mock_msal_app.get_accounts.return_value = []
+    provider = MsalGraphTokenProvider(cache_path=tmp_path / "cache.json")
+
+    with pytest.raises(AuthenticationError, match="Token renewal failed"):
+        provider.renew()

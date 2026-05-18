@@ -6,13 +6,13 @@ from typing import TYPE_CHECKING
 from ms_teams_cli.domain.exceptions import AuthenticationError
 
 if TYPE_CHECKING:
-    from ms_teams_cli.domain.ports.token_provider import TokenProvider
+    from ms_teams_cli.domain.ports import GraphTokenProvider
 
 
 class ChainedTokenProvider:
     """Try each provider in order; return first success or raise AuthenticationError."""
 
-    def __init__(self, providers: list[TokenProvider]) -> None:
+    def __init__(self, providers: list[GraphTokenProvider]) -> None:
         self._providers = providers
 
     def get_token(self) -> str:
@@ -40,3 +40,5 @@ class ChainedTokenProvider:
             "Token renewal failed. Run: ms-teams login\n\n"
             "Alternatively: az login --scope https://graph.microsoft.com/.default"
         ) from last_error
+
+
