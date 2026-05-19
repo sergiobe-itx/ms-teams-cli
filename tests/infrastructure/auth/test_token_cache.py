@@ -70,18 +70,3 @@ def test_token_cache_uses_xdg_path(monkeypatch: pytest.MonkeyPatch, tmp_path: Pa
 
     assert cache.path == tmp_path / ".cache" / "ms-teams-cli" / "graph-token.json"
     assert cache.path.exists()
-
-
-def test_token_cache_hit_avoids_subprocess_call(tmp_path: Path) -> None:
-    from unittest.mock import patch
-
-    from ms_teams_cli.infrastructure.auth import AzGraphTokenProvider, TokenCache
-
-    cache = TokenCache(tmp_path / "graph-token.json")
-    cache.save("cached-token", _future_iso())
-
-    with patch("ms_teams_cli.infrastructure.auth.az_provider.subprocess.run") as run:
-        token = AzGraphTokenProvider(cache=cache).get_token()
-
-    assert token == "cached-token"
-    run.assert_not_called()

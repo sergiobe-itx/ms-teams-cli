@@ -16,12 +16,7 @@ from ms_teams_cli.application.use_cases import (
     ScanActivityUseCase,
     SendMessageUseCase,
 )
-from ms_teams_cli.infrastructure.auth import (
-    AzGraphTokenProvider,
-    ChainedTokenProvider,
-    MsalGraphTokenProvider,
-    TokenCache,
-)
+from ms_teams_cli.infrastructure.auth import MsalGraphTokenProvider
 from ms_teams_cli.infrastructure.graph import (
     GraphCalendarRepository,
     GraphChannelRepository,
@@ -30,10 +25,8 @@ from ms_teams_cli.infrastructure.graph import (
 )
 
 
-def _build_graph_token_provider() -> ChainedTokenProvider:
-    msal_provider = MsalGraphTokenProvider()
-    az_provider = AzGraphTokenProvider(cache=TokenCache())
-    return ChainedTokenProvider(providers=[msal_provider, az_provider])
+def _build_graph_token_provider() -> MsalGraphTokenProvider:
+    return MsalGraphTokenProvider()
 
 
 def _build_channel_repo() -> GraphChannelRepository:

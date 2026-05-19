@@ -1,7 +1,6 @@
 """CLI app setup — Typer instance, error handling, and utility commands."""
 from __future__ import annotations
 
-import json
 from typing import TYPE_CHECKING, Annotated, cast, override
 
 import typer
@@ -130,32 +129,12 @@ def parse_url_command(
 def token_command() -> None:
     """Force token renewal and show expiry."""
     from ms_teams_cli.domain.exceptions import TeamsError
-    from ms_teams_cli.infrastructure.auth import AzGraphTokenProvider, TokenCache
+    from ms_teams_cli.infrastructure.auth.msal_provider import MsalGraphTokenProvider
 
     try:
-        cache = TokenCache()
-        provider = AzGraphTokenProvider(cache=cache)
+        provider = MsalGraphTokenProvider()
         _ = provider.renew()
-        cached = cache.load()
-        if cached is None:
-            typer.echo("Error: Token cache is empty after renewal", err=True)
-            raise typer.Exit(code=1)
-
-        data = cache.path.read_text(encoding="utf-8")
-        token_data = cast("dict[str, object]", json.loads(data))
-        expires_on = token_data.get("expiresOn", "")
-        expiry_str = expires_on or "(unknown)"
-
-        typer.echo(f"Token OK, expires: {expiry_str}")
-
-        from ms_teams_cli.infrastructure.auth.msal_provider import MsalGraphTokenProvider
-        msal_provider = MsalGraphTokenProvider()
-        try:
-            msal_token = msal_provider.get_token()
-            _ = msal_token
-            typer.echo("MSAL: authenticated (silent renewal available)")
-        except Exception:
-            typer.echo("MSAL: not logged in (run: ms-teams login)")
+        typer.echo("Token OK (MSAL renewal successful)")
     except TeamsError as exc:
         typer.echo(str(exc), err=True)
         raise typer.Exit(code=1) from exc

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Final, cast, override
+from typing import Final, cast
 
 import pytest
 import typer
@@ -11,13 +11,11 @@ from loguru import logger
 from typer.core import TyperGroup
 from typer.testing import CliRunner
 
-import ms_teams_cli.infrastructure.auth as auth_module
-import ms_teams_cli.infrastructure.auth.az_provider as az_provider_module
-import ms_teams_cli.infrastructure.auth.token_cache as token_cache_module
+import ms_teams_cli.infrastructure.auth.msal_provider as msal_provider_module
 import ms_teams_cli.presentation.cli._app as cli_module
 import ms_teams_cli.presentation.cli.chats as cli_chats_module
-import ms_teams_cli.presentation.dependencies as deps_module
 import ms_teams_cli.presentation.cli.formatters as formatters_module
+import ms_teams_cli.presentation.dependencies as deps_module
 from ms_teams_cli import (
     APIError,
     AuthenticationError,
@@ -756,55 +754,25 @@ def test_parse_url_reads_from_prompt(
 # === Token command ===
 
 
-def test_token_command_success(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    cache_path = tmp_path / "graph-token.json"
-    _ = cache_path.write_text(json.dumps({"expiresOn": "2026-12-31T00:00:00Z"}), encoding="utf-8")
+def test_token_command_success(monkeypatch: pytest.MonkeyPatch) -> None:
+    class SuccessProvider:
+        def renew(self) -> str:
+            return "refreshed-token"
 
-    class LocalTokenCache(FakeTokenCache):
-        def __init__(self) -> None:
-            super().__init__(cache_path)
-
-    class LocalTokenProvider(FakeGraphTokenProvider):
-        should_raise: Exception | None = None
-
-    monkeypatch.setattr(token_cache_module, "TokenCache", LocalTokenCache)
-    monkeypatch.setattr(auth_module, "TokenCache", LocalTokenCache)
-    monkeypatch.setattr(auth_module, "TokenCache", LocalTokenCache)
-    monkeypatch.setattr(az_provider_module, "AzGraphTokenProvider", LocalTokenProvider)
-    monkeypatch.setattr(auth_module, "AzGraphTokenProvider", LocalTokenProvider)
-    monkeypatch.setattr(auth_module, "AzGraphTokenProvider", LocalTokenProvider)
+    monkeypatch.setattr(msal_provider_module, "MsalGraphTokenProvider", SuccessProvider)
 
     result = runner.invoke(app, ["token"])
 
     assert result.exit_code == 0
-    assert "Token OK, expires: 2026-12-31T00:00:00Z" in result.stdout
-
-
-def test_token_command_empty_cache(monkeypatch: pytest.MonkeyPatch) -> None:
-    class EmptyTokenCache(FakeTokenCache):
-        @override
-        def load(self) -> str | None:
-            return None
-
-    monkeypatch.setattr(token_cache_module, "TokenCache", EmptyTokenCache)
-    monkeypatch.setattr(auth_module, "TokenCache", EmptyTokenCache)
-    monkeypatch.setattr(az_provider_module, "AzGraphTokenProvider", FakeGraphTokenProvider)
-    monkeypatch.setattr(auth_module, "AzGraphTokenProvider", FakeGraphTokenProvider)
-
-    result = runner.invoke(app, ["token"])
-
-    assert result.exit_code == 1
-    assert "Token cache is empty after renewal" in result.stderr
+    assert "Token OK (MSAL renewal successful)" in result.stdout
 
 
 def test_token_command_teams_error(monkeypatch: pytest.MonkeyPatch) -> None:
-    class FailingProvider(FakeGraphTokenProvider):
-        should_raise: Exception | None = TeamsError("renew failed")
+    class FailingProvider:
+        def renew(self) -> str:
+            raise TeamsError("renew failed")
 
-    monkeypatch.setattr(token_cache_module, "TokenCache", FakeTokenCache)
-    monkeypatch.setattr(auth_module, "TokenCache", FakeTokenCache)
-    monkeypatch.setattr(az_provider_module, "AzGraphTokenProvider", FailingProvider)
-    monkeypatch.setattr(auth_module, "AzGraphTokenProvider", FailingProvider)
+    monkeypatch.setattr(msal_provider_module, "MsalGraphTokenProvider", FailingProvider)
 
     result = runner.invoke(app, ["token"])
 
@@ -813,21 +781,11 @@ def test_token_command_teams_error(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_token_command_unexpected_error(monkeypatch: pytest.MonkeyPatch) -> None:
-    class BrokenCache:
-        def __init__(self) -> None:
-            pass
-
-        def load(self) -> str | None:
-            return "token"
-
-        @property
-        def path(self) -> Path:
+    class BrokenProvider:
+        def renew(self) -> str:
             raise RuntimeError("boom")
 
-    monkeypatch.setattr(token_cache_module, "TokenCache", BrokenCache)
-    monkeypatch.setattr(auth_module, "TokenCache", BrokenCache)
-    monkeypatch.setattr(az_provider_module, "AzGraphTokenProvider", FakeGraphTokenProvider)
-    monkeypatch.setattr(auth_module, "AzGraphTokenProvider", FakeGraphTokenProvider)
+    monkeypatch.setattr(msal_provider_module, "MsalGraphTokenProvider", BrokenProvider)
 
     result = runner.invoke(app, ["token"])
 
