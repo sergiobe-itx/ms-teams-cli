@@ -1,32 +1,45 @@
 # ms-teams-cli
 
-A Python CLI and MCP server for Microsoft Teams — read channels, chats, calendar events, and send messages via the Microsoft Graph API.
+> A Python CLI and MCP server for Microsoft Teams — read channels, chats, calendar events, and send
+> messages via the Microsoft Graph API.
 
-## Features
+## 1. Overview
 
-- **CLI** (`ms-teams`) — Typer-based terminal commands for channels, chats, calendar, and team management
-- **MCP Server** (`ms-teams-mcp`) — 12 tools exposable to AI agents (Claude, OpenCode, Cursor, etc.) via stdio
-- **Auth** — MSAL device-code flow with persistent token cache
-- **Architecture** — Hexagonal (ports & adapters), fully typed (pyright strict), 200+ tests
+Two interfaces, one codebase:
 
-## Quick Start
+- **`ms-teams`** — Terminal commands for humans (Rich-formatted tables, JSON output)
+- **`ms-teams-mcp`** — 12 tools for AI agents (Claude, OpenCode, Cursor) via stdio
+
+Built with Hexagonal Architecture, fully typed (pyright strict), and covered by 190+ tests.
+
+### 1.1. Why This Exists
+
+Teams has no usable CLI. The web app is slow, notifications are noisy, and there's no way to
+script interactions. This tool gives developers:
+
+- Quick terminal access to unread messages, channel activity, and calendar
+- AI agent integration for automated workflows (async daily standups, message triage)
+- A clean Python API that respects architectural boundaries
+
+## 2. Quick Start
 
 ```bash
-# Install from Artifactory
+# Install
 uv pip install ms-teams-cli
 
-# Authenticate (one-time)
+# Authenticate (one-time device-code flow)
 ms-teams login
 
 # Use
-ms-teams chats
-ms-teams unread
-ms-teams calendar 2026-05-19 2026-05-19
+ms-teams chats              # List all chats
+ms-teams unread             # Chats with unread messages
+ms-teams calendar 2026-05-19 2026-05-19  # Today's meetings
+ms-teams scan <team-id>     # Channel activity today
 ```
 
-## MCP Server (for AI agents)
+## 3. MCP Server (for AI Agents)
 
-Add to your AI client config (Claude Desktop, OpenCode, Cursor, etc.):
+The MCP server exposes the same functionality as structured tools over stdio:
 
 ```json
 {
@@ -38,7 +51,7 @@ Add to your AI client config (Claude Desktop, OpenCode, Cursor, etc.):
 }
 ```
 
-Or if running from source:
+Or from source:
 
 ```json
 {
@@ -51,7 +64,7 @@ Or if running from source:
 }
 ```
 
-### Available MCP Tools
+### 3.1. Available Tools
 
 | Tool | Description |
 |------|-------------|
@@ -68,13 +81,18 @@ Or if running from source:
 | `teams_scan_activity` | Scan all channels for activity on a date |
 | `teams_list_calendar_events` | List calendar events in a date range |
 
-## CLI Commands
+### 3.2. Send-Message Safety
+
+The `teams_send_message` tool requires an explicit allowlist. Without it, all sends are blocked.
+See [Usage → Send message allowlist](docs/usage.md#send-message-allowlist) for configuration.
+
+## 4. CLI Commands
 
 | Command | Description |
 |---------|-------------|
 | `login` | Authenticate via MSAL device-code flow |
 | `logout` | Clear the token cache |
-| `token` | Force token renewal and show expiry |
+| `token` | Force token renewal and show status |
 | `teams` | List all teams |
 | `channels` | List channels in a team |
 | `messages` | List messages in a channel |
@@ -89,16 +107,67 @@ Or if running from source:
 | `parse-url` | Extract IDs from a Teams URL |
 | `version` | Show version |
 
-## Authentication
+All commands support `--json` for machine-readable output.
 
-Run `ms-teams login` to authenticate via MSAL device-code flow. Tokens are cached at `~/.config/ms-teams-cli/` and refreshed automatically.
+## 5. High-Level Architecture
 
-## Documentation
+```
+┌────────────────────────────────────────────────────┐
+│  Presentation (driving adapters)                   │
+│  ┌─────────────┐          ┌─────────────┐          │
+│  │  CLI/Typer  │          │ MCP/FastMCP │          │
+│  └──────┬──────┘          └──────┬──────┘          │
+│         └────────┬───────────────┘                 │
+│                  ▼                                 │
+│         dependencies.py (composition root)         │
+└──────────────────┬─────────────────────────────────┘
+                   ▼
+┌──────────────────────────────────────────────────┐
+│  Application (use cases — thin orchestrators)    │
+└──────────────────┬───────────────────────────────┘
+                   ▼
+┌──────────────────────────────────────────────────┐
+│ Domain (entities, ports, services — pure Python) │
+└──────────────────┬───────────────────────────────┘
+                   ▲ implements
+┌──────────────────┴───────────────────────────────┐
+│  Infrastructure (Graph API client, MSAL auth)    │
+└──────────────────────────────────────────────────┘
+```
 
-- [Installation](docs/installation.md) — Prerequisites, install methods, verification
-- [Usage](docs/usage.md) — CLI and MCP usage guide with examples
-- [Architecture](docs/architecture.md) — Hexagonal design, layers, and decisions
-- [Contributing](docs/contributing.md) — Dev setup, testing, code style
+## 6. Authentication
+
+```bash
+ms-teams login
+```
+
+Opens a browser-based MSAL device-code flow. Tokens are cached locally and refreshed
+automatically on subsequent commands. No Azure CLI or service principal required.
+
+## 7. Documentation
+
+| Document | Contents |
+|----------|----------|
+| [Installation](docs/installation.md) | Prerequisites, install methods, auth setup, required permissions |
+| [Usage](docs/usage.md) | CLI examples, MCP configuration, tool reference |
+| [Architecture](docs/architecture.md) | Hexagonal design, layer responsibilities, design rationale |
+| [Testing](docs/testing.md) | Test layers, mocking strategy, coverage approach |
+| [Contributing](docs/contributing.md) | Dev workflow, golden rules, commit conventions |
+| [Caveats & Future Work](docs/caveats.md) | Known limitations, technical debt, roadmap |
+
+## 8. Tech Stack
+
+| Concern | Tool |
+|---------|------|
+| Language | Python 3.13 |
+| Package manager | uv |
+| HTTP client | httpx |
+| Auth | msal |
+| CLI framework | Typer + Rich |
+| MCP framework | FastMCP |
+| Type checker | pyright (strict) |
+| Linter/formatter | ruff |
+| Testing | pytest + pytest-httpx + pytest-cov |
 
 ## License
 
