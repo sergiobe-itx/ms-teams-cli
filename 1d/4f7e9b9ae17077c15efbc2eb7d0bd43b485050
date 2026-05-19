@@ -1,0 +1,47 @@
+LICENSE
+  s_f03af850dd6f2e::t_64c2128c31ff4d 1-21
+tests/presentation/test_cli.py
+  s_f03af850dd6f2e::t_36c658ea72fbe4 18
+  s_f03af850dd6f2e::t_a462186feb007f 14
+  s_f03af850dd6f2e::t_8b51cafcd6cb43 757-760,762,767,771-773,775,784-785,788
+  s_f03af850dd6f2e::t_2ca2d37cb819c6 6
+docs/architecture.md
+  s_f03af850dd6f2e::t_e0b5764d0dfe29 1-60,62-103,105-115
+  s_f03af850dd6f2e::t_68a9516e6d5411 61
+  s_f03af850dd6f2e::t_9f9fd51738a7f0 104
+pyproject.toml
+  s_f03af850dd6f2e::t_828fc4397b49a6 10
+docs/installation.md
+  s_f03af850dd6f2e::t_8db851803d17d4 1-36,40-62
+  s_f03af850dd6f2e::t_bc76d85c81da7b 37-39
+README.md
+  s_f03af850dd6f2e::t_ae0ed3af7ce2c9 1-8,10-93,95-105
+  s_f03af850dd6f2e::t_8af2f62d343c10 9
+  s_f03af850dd6f2e::t_9db7e279172a71 94
+src/ms_teams_cli/presentation/cli/_app.py
+  s_f03af850dd6f2e::t_6b8f4a050a9cc0 132,135,137
+docs/contributing.md
+  s_f03af850dd6f2e::t_d4c4a9747631f2 1-89
+src/ms_teams_cli/infrastructure/__init__.py
+  s_f03af850dd6f2e::t_1718885cd3de24 2,6
+docs/usage.md
+  s_f03af850dd6f2e::t_8c600f75718ca3 1-164
+src/ms_teams_cli/presentation/dependencies.py
+  s_f03af850dd6f2e::t_63a4b445ddd918 19,28-29
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.10",
+  "base_commit_sha": "1d4f7e9b9ae17077c15efbc2eb7d0bd43b485050",
+  "prompts": {},
+  "sessions": {
+    "s_f03af850dd6f2e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ses_1c6351f7affe3SQB00GcfVLJVr",
+        "model": "unknown"
+      },
+      "human_author": "Sergio Bugallo Enjamio <sergiobe@inditex.com>"
+    }
+  }
+}
